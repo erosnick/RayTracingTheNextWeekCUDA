@@ -1,11 +1,14 @@
 # Prerequisites
 *.d
-
+ 
 # Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
+*.pdb
+*.ilk
+
 
 # Precompiled Headers
 *.gch
@@ -30,3 +33,9 @@
 *.exe
 *.out
 *.app
+
+.vs
+x64
+Debug
+
+*.tlog

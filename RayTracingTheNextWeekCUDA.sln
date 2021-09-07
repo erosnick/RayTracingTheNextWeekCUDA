@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31624.102
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RayTracingTheNextWeekCUDA", "RayTracingTheNextWeekCUDA\RayTracingTheNextWeekCUDA.vcxproj", "{E45A458B-56C8-45E4-B351-5E143526518F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Playground", "Playground\Playground.vcxproj", "{2A01BAFA-5043-4A07-87FB-3F36059C0987}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		GPU-Realtime|x64 = GPU-Realtime|x64
+		GPU-Realtime-Debug|x64 = GPU-Realtime-Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E45A458B-56C8-45E4-B351-5E143526518F}.Debug|x64.ActiveCfg = Debug|x64
+		{E45A458B-56C8-45E4-B351-5E143526518F}.Debug|x64.Build.0 = Debug|x64
+		{E45A458B-56C8-45E4-B351-5E143526518F}.GPU-Realtime|x64.ActiveCfg = GPU-Realtime|x64
+		{E45A458B-56C8-45E4-B351-5E143526518F}.GPU-Realtime|x64.Build.0 = GPU-Realtime|x64
+		{E45A458B-56C8-45E4-B351-5E143526518F}.GPU-Realtime-Debug|x64.ActiveCfg = GPU-Realtime-Debug|x64
+		{E45A458B-56C8-45E4-B351-5E143526518F}.GPU-Realtime-Debug|x64.Build.0 = GPU-Realtime-Debug|x64
+		{E45A458B-56C8-45E4-B351-5E143526518F}.Release|x64.ActiveCfg = Release|x64
+		{E45A458B-56C8-45E4-B351-5E143526518F}.Release|x64.Build.0 = Release|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.Debug|x64.ActiveCfg = Debug|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.Debug|x64.Build.0 = Debug|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.GPU-Realtime|x64.ActiveCfg = Debug|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.GPU-Realtime|x64.Build.0 = Debug|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.GPU-Realtime-Debug|x64.ActiveCfg = Debug|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.GPU-Realtime-Debug|x64.Build.0 = Debug|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.Release|x64.ActiveCfg = Release|x64
+		{2A01BAFA-5043-4A07-87FB-3F36059C0987}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8DB5538A-191E-4749-BFAB-50D213268BEA}
+	EndGlobalSection
+EndGlobal
