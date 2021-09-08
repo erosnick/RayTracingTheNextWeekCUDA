@@ -198,9 +198,9 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
 #ifdef GPU_REALTIME
         canvas->accumulatePixel(index, color);
 #else
-        canvas->writePixel(index, color / samplesPerPixel);
-        //canvas->incrementSampleCount();
-        //canvas->accumulatePixel(index, color);
+        //canvas->writePixel(index, color / samplesPerPixel);
+        canvas->incrementSampleCount();
+        canvas->accumulatePixel(index, color);
 
         auto tenPercent = (width * height) / 10;
 
@@ -597,6 +597,7 @@ void pathTracing() {
 #else
     auto* counter = createObjectPtr<int32_t>();
 
+    canvas->incrementSampleCount();
     renderKernel<<<gridSize, blockSize>>>(canvas, camera, randStates, spheres, counter);
     gpuErrorCheck(cudaDeviceSynchronize());
 
