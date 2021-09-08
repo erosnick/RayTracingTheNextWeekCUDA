@@ -1455,4 +1455,8 @@ inline __device__ __host__ float3 point(float x, float y, float z) {
     return make_float3(x, y, z);
 }
 
+inline __device__ __host__ bool operator==(const float3& lhs, const float3& rhs) {
+    return ((lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z));
+}
+
 #endif

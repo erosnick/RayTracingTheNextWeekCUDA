@@ -46,8 +46,9 @@ public:
     CUDA_DEVICE inline bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
         auto reflected = Utils::reflect(normalize(inRay.direction), hitResult.normal);
         scattered = Ray(hitResult.position, reflected + fuzz * Utils::randomInUnitSphere(randState), inRay.time);
-        attenuation = albedo;
-        return (dot(scattered.direction, hitResult.normal) > 0);
+        auto bScatter = (dot(scattered.direction, hitResult.normal) > 0);
+        attenuation = albedo * bScatter;
+        return bScatter;
     }
 
     Float3 albedo;
@@ -105,4 +106,32 @@ private:
         r0 = r0 * r0;
         return r0 + (1.0f - r0) * pow((1.0f - cosine), 5.0f);
     }
+};
+
+class Emission : public Material {
+public:
+    CUDA_DEVICE Emission(const Float3& inAlbedo, Float inIntensity = 1.0f)
+    : albedo(inAlbedo), intensity(inIntensity) {
+    }
+
+    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
+        ////auto scatterDirection = Utils::randomUnitVector(randState);                                         // Diffuse1
+        //auto scatterDirection = hitResult.normal + Utils::randomUnitVector(randState);                      // Diffuse2
+        ////auto scatterDirection = Utils::randomHemiSphere(hitResult.normal, randState);                       // Diffuse3
+        ////auto scatterDirection = hitResult.normal + Utils::randomHemiSphere(hitResult.normal, randState);    // Diffuse4
+        ////auto scatterDirection = hitResult.normal + Utils::randomInUnitSphere(randState);                    // Diffuse5
+        //// Catch degenerate scatter direction
+        //// If the random unit vector we generate is exactly opposite the normal vector, 
+        //// the two will sum to zero, which will result in a zero scatter direction vector. 
+        //// This leads to bad scenarios later on (infinities and NaNs),
+        //if (Utils::nearZero(scatterDirection)) {
+        //    scatterDirection = hitResult.normal;
+        //}
+        //scattered = Ray(hitResult.position, normalize(scatterDirection), inRay.time);
+        attenuation = albedo * intensity;
+        return false;
+    }
+
+    Float3 albedo;
+    Float intensity;
 };

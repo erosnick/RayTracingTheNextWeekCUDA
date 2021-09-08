@@ -22,14 +22,9 @@ public:
         fov = inFOV;
         aperture = inAperture;
         focusDistance = inFocusDistance;
-        cameraSpeed = 6.0f;
+        movingSpeed = 3.0f;
         time0 = inTime0;
         time1 = inTime1;
-
-        scale = tan(Math::radians(fov / 2.0f));
-
-        viewportHeight = 2.0f * scale;
-        viewportWidth = viewportHeight * aspectRatio;
 
         bIsDirty = true;
         updateViewMatrix();
@@ -40,20 +35,20 @@ public:
     }
 
     void walk(Float delta) {
-        eye += forward * cameraSpeed * delta;
-        center += forward * cameraSpeed * delta;
+        eye += forward * movingSpeed * delta;
+        center += forward * movingSpeed * delta;
         bIsDirty = true;
     }
 
     void strafe(Float delta) {
-        eye += right * cameraSpeed * delta;
-        center += right * cameraSpeed * delta;
+        eye += right * movingSpeed * delta;
+        center += right * movingSpeed * delta;
         bIsDirty = true;
     }
 
     void raise(Float delta) {
-        eye += up * cameraSpeed * delta;
-        center += up * cameraSpeed * delta;
+        eye += up * movingSpeed * delta;
+        center += up * movingSpeed * delta;
         bIsDirty = true;
     }
 
@@ -87,6 +82,10 @@ public:
 
     CUDA_HOST_DEVICE inline void updateViewMatrix() {
         if (bIsDirty) {
+            scale = tan(Math::radians(fov / 2.0f));
+            viewportHeight = 2.0f * scale;
+            viewportWidth = viewportHeight * aspectRatio;
+
             forward = normalize(center - eye);
             right = normalize(cross(forward, up));
             trueUp = cross(right, forward);
@@ -110,12 +109,28 @@ public:
         lensRadius = aperture / 2.0f;
     }
     
-    CUDA_HOST_DEVICE inline Float getAperture() const {
+    CUDA_HOST_DEVICE inline const Float& getAperture() const {
         return aperture;
     }
 
     CUDA_HOST_DEVICE inline Float& getAperture() {
         return aperture;
+    }
+
+    CUDA_HOST_DEVICE inline const Float& getFOV() const {
+        return fov;
+    }
+
+    CUDA_HOST_DEVICE inline Float& getFOV() {
+        return fov;
+    }
+
+    CUDA_HOST_DEVICE inline const Float& getMovingSpeed() const {
+        return movingSpeed;
+    }
+
+    CUDA_HOST_DEVICE inline Float& getMovingSpeed() {
+        return movingSpeed;
     }
 
     inline void setDirty() {
@@ -150,10 +165,10 @@ public:
 private:
     Float aspectRatio;
     Float fov;
-    Float scale = 1.0f;
+    Float scale;
     Float viewportHeight;
     Float viewportWidth;
-    Float cameraSpeed = 6.0f;
+    Float movingSpeed;
     Float aperture;
     Float focusDistance;
     Float lensRadius;

@@ -178,8 +178,8 @@ public:
         return renderingTime;
     }
 
-    CUDA_HOST_DEVICE inline void incrementRenderingTime() {
-        renderingTime += 16.0f;
+    CUDA_HOST_DEVICE inline void incrementRenderingTime(Float amount = 16.0f) {
+        renderingTime += amount;
     }
 
     CUDA_HOST_DEVICE inline void print() const {

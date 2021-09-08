@@ -95,7 +95,7 @@ void Processor::processData(uint8_t* data)
     dim3 gridSize((imageInputDimensions.width + blockSize.x - 1) / blockSize.x,
                   (imageInputDimensions.height + blockSize.y - 1) / blockSize.y);
 
-    kernel<<<gridSize, blockSize >>>(d_imageInputTexture, imageInputDimensions.width, imageInputDimensions.height, data);
+    kernel<<<gridSize, blockSize>>>(d_imageInputTexture, imageInputDimensions.width, imageInputDimensions.height, data);
 
     //Sync the surface with the texture
     cudaDeviceSynchronize();

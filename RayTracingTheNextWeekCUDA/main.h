@@ -27,6 +27,8 @@ extern Canvas* canvas;
 extern int32_t width;
 extern int32_t height;
 
+extern Float frameTime;
+
 void initialize(int32_t width, int32_t height);
 void pathTracing();
 void cleanup();

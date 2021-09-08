@@ -184,9 +184,15 @@ void buildImGuiWidgets() {
         //ImGui::PopFont();
         ImGui::Checkbox("Demo Window", &bShowDemoWindow);      // Edit bools storing our window open/close state
         ImGui::Checkbox("Another Window", &bShowAnotherWindow);
-  /*      if (ImGui::SliderFloat("Aperture", &camera->getAperture(), 0.0f, 2.0f)) {
+        if (ImGui::SliderFloat("Aperture", &camera->getAperture(), 0.0f, 2.0f)) {
             camera->setDirty();
-        }*/
+        }
+
+        if (ImGui::SliderFloat("FOV", &camera->getFOV(), 20.0f, 90.0f)) {
+            camera->setDirty();
+        }
+
+        ImGui::SliderFloat("Camera Speed", &camera->getMovingSpeed(), 1.0f, 5.0f);
         //ImGui::ColorEdit3("Ambient", (float*)&commonMaterial->Ka); // Edit 1 float using a slider from 0.1f to 1.0f
         //ImGui::SliderFloat("Reflection", &commonMaterial->reflectionFactor, 0.0f, 1.0f);
         //ImGui::SliderFloat("Refraction", &commonMaterial->refractionFactor, 0.0f, 1.0f);
@@ -389,6 +395,7 @@ int main() {
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
     glfwSetFramebufferSizeCallback(window, onFrameBufferResize);
 
     // glad: load all OpenGL function pointers
