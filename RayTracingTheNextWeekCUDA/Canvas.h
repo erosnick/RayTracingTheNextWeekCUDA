@@ -61,11 +61,9 @@ public:
     }
 
     CUDA_DEVICE inline void writePixel(int32_t index, Float red, Float green, Float blue) {
-        Float start = 0.0f;
-        Float end = 0.999f;
-        (*pixelBuffer)[index * 3] = uint8_t(255.99f * clamp(sqrt(red), start, end));
-        (*pixelBuffer)[index * 3 + 1] = uint8_t(255.99f * clamp(sqrt(green), start, end));
-        (*pixelBuffer)[index * 3 + 2] = uint8_t(255.99f * clamp(sqrt(blue), start, end));
+        (*pixelBuffer)[index * 3] = gamma(red);
+        (*pixelBuffer)[index * 3 + 1] = gamma(green);
+        (*pixelBuffer)[index * 3 + 2] = gamma(blue);
     }
 
     CUDA_DEVICE inline void writePixel(int32_t index, const Float3& color) {
@@ -82,18 +80,21 @@ public:
     }
 
     CUDA_DEVICE inline void accumulatePixel(int32_t index, Float red, Float green, Float blue) {
-        Float start = 0.0f;
-        Float end = 0.999f;
+        (*accumulationBuffer)[index * 3] += red;
+        (*accumulationBuffer)[index * 3 + 1] += green;
+        (*accumulationBuffer)[index * 3 + 2] += blue;
 
-        auto r = uint8_t(255.99f * clamp(sqrt(red), start, end));
-        auto g = uint8_t(255.99f * clamp(sqrt(green), start, end));
-        auto b = uint8_t(255.99f * clamp(sqrt(blue), start, end));
-        (*accumulationBuffer)[index * 3] += r;
-        (*accumulationBuffer)[index * 3 + 1] += g;
-        (*accumulationBuffer)[index * 3 + 2] += b;
-        (*pixelBuffer)[index * 3] = (*accumulationBuffer)[index * 3] / sampleCount;
-        (*pixelBuffer)[index * 3 + 1] = (*accumulationBuffer)[index * 3 + 1] / sampleCount;
-        (*pixelBuffer)[index * 3 + 2] = (*accumulationBuffer)[index * 3 + 2] / sampleCount;
+        auto ar = (*accumulationBuffer)[index * 3] * scale;
+        auto ag = (*accumulationBuffer)[index * 3 + 1] * scale;
+        auto ab = (*accumulationBuffer)[index * 3 + 2] * scale;
+
+        auto r = gamma(ar);
+        auto g = gamma(ag);
+        auto b = gamma(ab);
+
+        (*pixelBuffer)[index * 3] = r;
+        (*pixelBuffer)[index * 3 + 1] = g;
+        (*pixelBuffer)[index * 3 + 2] = b;
     }
 
     //inline Tuple pixelAt(int32_t x, int32_t y) {
@@ -153,13 +154,14 @@ public:
     }
 
     CUDA_HOST_DEVICE inline void clearPixel(int32_t index, const Float3& clearColor = make_float3(0.0f, 0.0f, 0.0f)) {
-        (*accumulationBuffer)[index * 3] = 0;
-        (*accumulationBuffer)[index * 3 + 1] = 0;
-        (*accumulationBuffer)[index * 3+ 2] = 0;
+        (*accumulationBuffer)[index * 3] = 0.0f;
+        (*accumulationBuffer)[index * 3 + 1] = 0.0f;
+        (*accumulationBuffer)[index * 3+ 2] = 0.0f;
     }
 
     CUDA_HOST_DEVICE inline void incrementSampleCount() {
         sampleCount++;
+        scale = 1.0f / sampleCount;
     }
 
     CUDA_HOST_DEVICE inline void resetSampleCount() {
@@ -184,18 +186,22 @@ public:
 
     CUDA_HOST_DEVICE inline void print() const {
         for (auto i = 0; i < accumulationBuffer->size; i++) {
-            printf("%d\n", (*accumulationBuffer)[i]);
+            printf("%f\n", (*accumulationBuffer)[i]);
         }
     }
 
 private:
-    Buffer<uint8_t>* pixelBuffer;
-    Buffer<uint32_t>* accumulationBuffer;
+    CUDA_HOST_DEVICE inline uint32_t gamma(Float component) {
+        return uint32_t(255.99f * clamp(sqrt(component), 0.0f, 0.999f));
+    }
 
+private:
+    Buffer<uint8_t>* pixelBuffer;
+    Buffer<Float>* accumulationBuffer;
     int32_t width;
     int32_t height;
     uint32_t sampleCount;
-
+    Float scale;
     Float renderingTime;
 };
 

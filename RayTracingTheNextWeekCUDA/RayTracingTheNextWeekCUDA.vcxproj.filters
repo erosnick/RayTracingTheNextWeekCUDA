@@ -39,6 +39,9 @@
     <CudaCompile Include="Plane.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="Material.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Buffer.h">
@@ -132,6 +135,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Plane.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="YAML.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -21,6 +21,7 @@
   <ItemGroup>
     <CudaCompile Include="Buffer.cu" />
     <CudaCompile Include="main.cu" />
+    <CudaCompile Include="Material.cu" />
     <CudaCompile Include="Processor.cu" />
     <CudaCompile Include="Utils.cu" />
   </ItemGroup>
@@ -54,6 +55,7 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="Utils.h" />
+    <ClInclude Include="YAML.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Canvas.cpp" />
@@ -202,6 +204,7 @@
       <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr %(AdditionalOptions)</AdditionalOptions>
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <FastMath>true</FastMath>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='GPU-Realtime|x64'">

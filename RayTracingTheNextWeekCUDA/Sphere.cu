@@ -14,12 +14,14 @@ CUDA_DEVICE bool Sphere::hit(const Ray& ray, Float tMin, Float tMax, HitResult& 
         return false;
     }
 
+    auto inversea = 1.0f / a;
+
     auto sqrtd = sqrt(discriminant);
-    Float root = (-halfB - sqrtd) / a;
+    Float root = (-halfB - sqrtd) * inversea;
 
     // Find the nearest root that lies in the acceptable range.
     if (root < tMin || tMax < root) {
-        root = (-halfB + sqrtd) / a;
+        root = (-halfB + sqrtd) * inversea;
         if (root < tMin || tMax < root) {
             return false;
         }
@@ -48,12 +50,14 @@ CUDA_DEVICE bool MovingSphere::hit(const Ray& ray, Float tMin, Float tMax, HitRe
         return false;
     }
 
+    auto inversea = 1.0f / a;
+
     auto sqrtd = sqrt(discriminant);
-    Float root = (-halfB - sqrtd) / a;
+    Float root = (-halfB - sqrtd) * inversea;
 
     // Find the nearest root that lies in the acceptable range.
     if (root < tMin || tMax < root) {
-        root = (-halfB + sqrtd) / a;
+        root = (-halfB + sqrtd) * inversea;
         if (root < tMin || tMax < root) {
             return false;
         }

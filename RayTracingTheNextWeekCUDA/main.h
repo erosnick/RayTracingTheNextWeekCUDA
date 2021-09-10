@@ -30,5 +30,6 @@ extern int32_t height;
 extern Float frameTime;
 
 void initialize(int32_t width, int32_t height);
+void clearBackBuffers();
 void pathTracing();
 void cleanup();

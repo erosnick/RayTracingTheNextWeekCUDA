@@ -477,6 +477,8 @@ int main() {
     Processor processor;
     processor.setInput(imageData->data, imageData->width, imageData->height);
 
+    //clearBackBuffers();
+
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     // -------------------------------------------------------------------------------------------
     ourShader.use(); // don't forget to activate/use the shader before setting uniforms!

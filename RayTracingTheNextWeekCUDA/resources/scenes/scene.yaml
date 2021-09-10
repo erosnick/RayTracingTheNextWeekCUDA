@@ -5,53 +5,95 @@ objects:
         - 0.0
         - 0.0
       radius: 1000
-      materialId: 7
+      materialId: 0
       type: 0
+      material:
+         type: 0
+         albedo:
+           - 0.0
+           - 1.0
+           - 0.0
   - sphere:
       center:
         - -1000.5
         -  0.0
         -  0.0
       radius: 1000
-      materialId: 6
+      materialId: 1
       type: 0
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 0.0
+           - 0.0
   - sphere:
       center:
         -  1.0
         -  0.0
         - -1000.5
       radius: 1000
-      materialId: 5
+      materialId: 2
       type: 0
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
+  - sphere:
+      center:
+        - 0.0
+        - 1000.5
+        - 0.0
+      radius: 1000
+      materialId: 2
+      type: 0
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
   - sphere:
       center:
         -  0.0
         - -1000.5
         -  0.0
       radius: 1000
-      materialId: 5
+      materialId: 2
       type: 0
-  - sphere:
-      center:
-        - 0.0
-        - 1000.5
-        -  0.0
-      radius: 1000
-      materialId: 5
-      type: 0
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
   - sphere:
       center:
         - -0.25
-        - -0.375
-        - -0.125
-      radius: 0.125
-      materialId: 5
+        - -0.325
+        - -0.25
+      radius: 0.175
+      materialId: 2
       type: 0
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
   - sphere:
       center:
         -  0.25
-        - -0.375
-        - -0.25
-      radius: 0.125
+        - -0.325
+        - -0.125
+      radius: 0.175
       materialId: 2
       type: 0
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0

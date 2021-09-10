@@ -104,7 +104,7 @@ namespace Utils {
 
     CUDA_DEVICE inline bool nearZero(const Float3& v) {
         // Return true if the vector is close to zero in all dimensions.
-        const auto s = 1e-8;
+        const auto s = 1e-8f;
         return (fabs(v.x) < s) && (fabs(v.y) < s) && (fabs(v.z) < s);
     }
 

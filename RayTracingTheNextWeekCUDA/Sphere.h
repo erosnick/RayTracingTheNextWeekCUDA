@@ -5,18 +5,20 @@
 #include "Material.h"
 #include "Hitable.h"
 
-class Sphere : public Hitable {
+//class Sphere : public Hitable {
+class Sphere {
 public:
-    CUDA_HOST_DEVICE Sphere() {}
-    CUDA_HOST_DEVICE Sphere(const Float3& inCenter, float inRadius, Material* inMaterial, bool bInShading = true) {
-        initialize(inCenter, inRadius, inMaterial, bInShading);
-    }
+    //CUDA_HOST_DEVICE Sphere() {}
+    //CUDA_HOST_DEVICE Sphere(const Float3& inCenter, float inRadius, Material* inMaterial, bool bInShading = true) {
+    //    initialize(inCenter, inRadius, inMaterial, bInShading);
+    //}
 
     CUDA_HOST_DEVICE void initialize(const Float3& inCenter, float inRadius, Material* inMaterial, bool bInShading = true) {
         center = inCenter;
         radius = inRadius;
         material = inMaterial;
         bShading = bInShading;
+        PrimitiveType type = PrimitiveType::Sphere;
     }
 
     void uninitailize() {
@@ -25,13 +27,13 @@ public:
         //}
     }
 
-    CUDA_HOST_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const override;
+    CUDA_HOST_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const;
 
     Float3 center;
     Float radius;
     Material* material;
     bool bShading;
-    PrimitiveType primitiveType = PrimitiveType::Sphere;
+    PrimitiveType type;
 };
 
 class MovingSphere : public Hitable {

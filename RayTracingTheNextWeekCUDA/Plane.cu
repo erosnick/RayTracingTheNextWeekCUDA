@@ -6,7 +6,9 @@ CUDA_HOST_DEVICE bool Plane::hit(const Ray& ray, Float tMin, Float tMax, HitResu
 
     // The absolute value is used here, 
     // and it can be intersected from both sides 
-    if (abs(denominator) > Math::epsilon) {
+    auto shouldProcced = bTwoSide ? (abs(denominator) > Math::epsilon) : (denominator > Math::epsilon);
+
+    if (shouldProcced) {
         Float3 po = position - ray.origin;
         hitResult.t = dot(po, normal) / denominator;
         hitResult.position = ray.at(hitResult.t);

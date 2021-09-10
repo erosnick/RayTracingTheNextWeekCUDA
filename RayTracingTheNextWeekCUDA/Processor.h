@@ -44,11 +44,11 @@ private:
      * OpenGL texture
      *
      */
-    cudaSurfaceObject_t d_imageInputTexture;
+    cudaSurfaceObject_t d_imageInputTexture = 0;
     /**
      * @brief A CUDA resource that's bound to an array in CUDA memory
      */
-    cudaGraphicsResource_t d_imageInputGraphicsResource;
+    cudaGraphicsResource_t d_imageInputGraphicsResource = nullptr;
     /**
      * @brief A renderable OpenGL texture that is synchronized with the CUDA data
      * @see d_imageInputTexture, d_imageOutputTexture

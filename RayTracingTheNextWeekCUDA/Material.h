@@ -5,9 +5,16 @@
 #include "HitResult.h"
 #include "Utils.h"
 
+enum class MaterialType : uint8_t {
+    Lambertian,
+    Metal,
+    Dieletric,
+    Emission
+};
+
 class Material {
 public:
-    CUDA_DEVICE inline virtual bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const = 0;
+    CUDA_DEVICE virtual bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const = 0;
 };
 
 class Lambertian : public Material {
@@ -16,25 +23,10 @@ public:
         : albedo(inAlbedo), absorb(inAbsorb) {
     }
 
-    CUDA_DEVICE inline bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
-        //auto scatterDirection = Utils::randomUnitVector(randState);                                         // Diffuse1
-        auto scatterDirection = hitResult.normal + Utils::randomUnitVector(randState);                      // Diffuse2
-        //auto scatterDirection = Utils::randomHemiSphere(hitResult.normal, randState);                       // Diffuse3
-        //auto scatterDirection = hitResult.normal + Utils::randomHemiSphere(hitResult.normal, randState);    // Diffuse4
-        //auto scatterDirection = hitResult.normal + Utils::randomInUnitSphere(randState);                    // Diffuse5
-        // Catch degenerate scatter direction
-        // If the random unit vector we generate is exactly opposite the normal vector, 
-        // the two will sum to zero, which will result in a zero scatter direction vector. 
-        // This leads to bad scenarios later on (infinities and NaNs),
-        if (Utils::nearZero(scatterDirection)) {
-            scatterDirection = hitResult.normal;
-        }
-        scattered = Ray(hitResult.position, normalize(scatterDirection), inRay.time);
-        attenuation = albedo;
-        return true;
-    }
+    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override;
     Float3 albedo;
     Float absorb;
+    MaterialType type = MaterialType::Lambertian;
 };
 
 class Metal : public Material {
@@ -53,6 +45,7 @@ public:
 
     Float3 albedo;
     Float fuzz;
+    MaterialType type = MaterialType::Metal;
 };
 
 class Dieletric : public Material {
@@ -98,6 +91,7 @@ public:
     }
 
     Float indexOfRefraction;
+    MaterialType type = MaterialType::Dieletric;
 
 private:
     CUDA_DEVICE static Float reflectance(Float cosine, Float refractionIndex) {
@@ -134,4 +128,5 @@ public:
 
     Float3 albedo;
     Float intensity;
+    MaterialType type = MaterialType::Emission;
 };
