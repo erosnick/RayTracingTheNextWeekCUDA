@@ -52,10 +52,10 @@ CUDA_GLOBAL void deleteDeviceObjectArray(T** object, int32_t count) {
 
 constexpr auto BOUNCES = 4;
 
-constexpr auto SPHERES = 8;
+constexpr auto SPHERES = 7;
 constexpr auto MATERIALS = 10;
-CUDA_CONSTANT Hitable* constantSpheres[SPHERES];
-CUDA_CONSTANT Material* constantMaterials[MATERIALS];
+CUDA_CONSTANT Sphere constantSpheres[SPHERES];
+CUDA_CONSTANT Lambertian constantMaterials[MATERIALS];
 
 CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) {
     HitResult tempHitResult;
@@ -63,7 +63,7 @@ CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResul
     Float closestSoFar = tMax;
     for (auto& sphere : constantSpheres) {
         // Empty hit call costs ~130ms
-        if (sphere->hit(ray, tMin, closestSoFar, tempHitResult)) {
+        if (sphere.hit(ray, tMin, closestSoFar, tempHitResult)) {
             bHitAnything = true;
             closestSoFar = tempHitResult.t;
             hitResult = tempHitResult;
@@ -103,7 +103,7 @@ CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState) {
             Ray scattered;
             // Bounces 4 Samples 100 18ms
             // Bounces 4 Samples 100 33ms(Empty scatter function body)
-            if (constantMaterials[hitResult.materialId]->scatter(currentRay, hitResult, attenuation, scattered, randState)) {
+            if (constantMaterials[0].scatter(currentRay, hitResult, attenuation, scattered, randState)) {
             //if (lambertianScatter(currentRay, hitResult, attenuation, scattered, randState)) {
                 currentAttenuation *= attenuation;
                 currentRay = scattered;
@@ -235,14 +235,14 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
     }
 }
 
-CUDA_GLOBAL void createLambertianMaterialKernel(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
-    *(material + index) = new Lambertian(index, albedo, absorb);
-}
-
-void createLambertianMaterial(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
-    createLambertianMaterialKernel<<<1, 1>>>(material, index, albedo, absorb);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
+//CUDA_GLOBAL void createLambertianMaterialKernel(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
+//    *(material + index) = new Lambertian(index, albedo, absorb);
+//}
+//
+//void createLambertianMaterial(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
+//    createLambertianMaterialKernel<<<1, 1>>>(material, index, albedo, absorb);
+//    gpuErrorCheck(cudaDeviceSynchronize());
+//}
 
 CUDA_GLOBAL void createEmissionMaterialKernel(Material** material, int32_t index, Float3 albedo, Float intensity = 1.0f) {
     *(material + index) = new Emission(index, albedo, intensity);
@@ -284,14 +284,14 @@ CUDA_GLOBAL void clearBackBuffers(Canvas* canvas) {
     }
 }
 
-CUDA_GLOBAL void createSphereKernel(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading) {
-    *(sphere + index) = new Sphere(center, radius, material, bShading);
-}
-
-void createSphere(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading = true) {
-    createSphereKernel<<<1, 1>>>(sphere, index, center, radius, material, bShading);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
+//CUDA_GLOBAL void createSphereKernel(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading) {
+//    *(sphere + index) = new Sphere(center, radius, material, bShading);
+//}
+//
+//void createSphere(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading = true) {
+//    createSphereKernel<<<1, 1>>>(sphere, index, center, radius, material, bShading);
+//    gpuErrorCheck(cudaDeviceSynchronize());
+//}
 
 CUDA_GLOBAL void createMovingSphereKernel(Hitable** sphere, int32_t index, Float3 center0, Float3 center1, Float time0, Float time1, Float radius, Material* material) {
     *(sphere + index) = new MovingSphere(center0, center1, time0, time1, radius, material);
@@ -337,9 +337,11 @@ int32_t height = 36;
 
 Canvas* canvas = nullptr;
 Camera* camera = nullptr;
-Hitable** spheres = nullptr;
+//Hitable** spheres = nullptr;
+Sphere spheres[SPHERES];
+Lambertian materials[MATERIALS];
 //std::vector<Material**> materials(MATERIALS);
-Material** materials = nullptr;
+//Material** materials = nullptr;
 curandState* randStates = nullptr;
 std::shared_ptr<ImageData> imageData = nullptr;
 
@@ -390,9 +392,9 @@ void initialize(int32_t width, int32_t height) {
     //    material = createObjectPtr<Material*>();
     //}
 
-    materials = createObjectPtrArray<Material*>(MATERIALS);
+    //materials = createObjectPtrArray<Material*>(MATERIALS);
 
-    spheres = createObjectPtrArray<Hitable*>(SPHERES);
+    //spheres = createObjectPtrArray<Hitable*>(SPHERES);
 
 #if SCENE == 0
     // If the distance between object and camera equals to focus lens
@@ -439,21 +441,21 @@ void initialize(int32_t width, int32_t height) {
     ////createLambertianMaterial(materials[0], make_float3(0.0f, 1.0f, 0.0f));
     ////createLambertianMaterial(materials[1], make_float3(1.0f, 0.0f, 0.0f));
     //createLambertianMaterial(materials, 2, make_float3(1.0f, 1.0f, 1.0f));
-    createDieletricMaterial(materials, 3, 1.5f);
-    createMetalMaterial(materials, 4, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
-    createLambertianMaterial(materials, 5, make_float3(0.8f, 0.8f, 0.0f));
-    createMetalMaterial(materials, 6, make_float3(0.5f, 0.7f, 1.0f), 0.0f);
+    //createDieletricMaterial(materials, 3, 1.5f);
+    //createMetalMaterial(materials, 4, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
+    //createLambertianMaterial(materials, 5, make_float3(0.8f, 0.8f, 0.0f));
+    //createMetalMaterial(materials, 6, make_float3(0.5f, 0.7f, 1.0f), 0.0f);
 
     ////createLambertianMaterial(materials[5], make_float3(1.0f, 1.0f, 1.0f));
-    createDieletricMaterial(materials, 7, 1.5f);
-    createDieletricMaterial(materials, 8, 1.5f);
-    createEmissionMaterial(materials, 9, make_float3(1.0f, 1.0f, 1.0f), 15.0f);
+    //createDieletricMaterial(materials, 7, 1.5f);
+    //createDieletricMaterial(materials, 8, 1.5f);
+    //createEmissionMaterial(materials, 9, make_float3(1.0f, 1.0f, 1.0f), 15.0f);
 
     YAML::Node scene = YAML::LoadFile("./resources/scenes/scene.yaml");
 
     auto objects = scene["objects"];
 
-    for (auto i = 0; i < SPHERES - 1; i++) {
+    for (auto i = 0; i < SPHERES; i++) {
         auto object = objects[i];
 
         auto center = object["sphere"]["center"].as<Float3>();
@@ -464,9 +466,7 @@ void initialize(int32_t width, int32_t height) {
         switch (materialType) {
             case MaterialType::Lambertian: {
                 auto albedo = object["sphere"]["material"]["albedo"].as<Float3>();
-                if ((materials[materialId]) == nullptr) {
-                    createLambertianMaterial(materials, materialId, albedo);
-                }
+                materials[materialId].initialize(materialId, albedo, 1.0f);
             }
         
             break;
@@ -474,10 +474,11 @@ void initialize(int32_t width, int32_t height) {
             break;
         }
         
-        createSphere(spheres, i, center, radius, materials[materialId]);
+        //createSphere(spheres, i, center, radius, materials[materialId]);
+        spheres[i].initialize(center, radius, nullptr);
     }
 
-    createPlane(spheres, SPHERES - 1, { 0.0f, 0.495f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.125f, 0.125f, 0.125f }, materials[9]);
+    //createPlane(spheres, SPHERES - 1, { 0.0f, 0.495f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.125f, 0.125f, 0.125f }, materials[9]);
 
     //// If the distance between object and camera equals to focus lens
     //// then the object is in focus
@@ -567,8 +568,8 @@ void initialize(int32_t width, int32_t height) {
     createSphere(spheres, 487, point( 4.0f,     1.0f, 0.0f),    1.0f, *(materials[487]));
 
 #endif
-    gpuErrorCheck(cudaMemcpyToSymbol(constantSpheres, spheres, sizeof(Hitable*) * SPHERES));
-    gpuErrorCheck(cudaMemcpyToSymbol(constantMaterials, materials, sizeof(Material*) * MATERIALS));
+    gpuErrorCheck(cudaMemcpyToSymbol(constantSpheres, spheres, sizeof(Sphere) * (SPHERES)));
+    gpuErrorCheck(cudaMemcpyToSymbol(constantMaterials, materials, sizeof(Lambertian) * MATERIALS));
 
     auto pixelCount = width * height;
     randStates = createObjectArray<curandState>(pixelCount);
@@ -621,13 +622,13 @@ void pathTracing() {
 void cleanup() {
     deleteObject(randStates);
 
-    deleteDeviceObjectArray<<<1, 1>>>(spheres, SPHERES);
-    deleteDeviceObjectArray<<<1, 1>>>(materials, MATERIALS);
+    //deleteDeviceObjectArray<<<1, 1>>>(spheres, SPHERES);
+    //deleteDeviceObjectArray<<<1, 1>>>(materials, MATERIALS);
 
     gpuErrorCheck(cudaDeviceSynchronize());
 
-    deleteObject(spheres);
-    deleteObject(materials);
+    //deleteObject(spheres);
+    //deleteObject(materials);
 
     deleteObject(camera);
     canvas->uninitialize();

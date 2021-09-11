@@ -19,18 +19,26 @@ public:
     MaterialType type;
 };
 
-class Lambertian : public Material {
+class Lambertian {
 public:
-    CUDA_DEVICE Lambertian() {}
-    CUDA_DEVICE Lambertian(uint32_t inId, const Float3& inAlbedo, Float inAbsorb)
-        : albedo(inAlbedo), absorb(inAbsorb) {
+    //CUDA_DEVICE Lambertian() {}
+    //CUDA_DEVICE Lambertian(uint32_t inId, const Float3& inAlbedo, Float inAbsorb)
+    //    : albedo(inAlbedo), absorb(inAbsorb) {
+    //    id = inId;
+    //    type = MaterialType::Lambertian;
+    //}
+    CUDA_HOST_DEVICE void initialize(uint32_t inId, const Float3& inAlbedo, Float inAbsorb) {
+        albedo = inAlbedo;
+        absorb = inAbsorb;
         id = inId;
         type = MaterialType::Lambertian;
     }
 
-    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override;
+    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const;
     Float3 albedo;
     Float absorb;
+    MaterialType type;
+    uint32_t id;
 };
 
 class Metal : public Material {

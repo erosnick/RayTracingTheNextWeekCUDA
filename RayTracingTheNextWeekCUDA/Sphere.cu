@@ -32,7 +32,7 @@ CUDA_DEVICE bool Sphere::hit(const Ray& ray, Float tMin, Float tMax, HitResult& 
     auto outwardNormal = (position - center) / radius;
     hitResult.setFaceNormal(ray, outwardNormal);
     //hitResult.material = material;
-    hitResult.materialId = material->id;
+    hitResult.materialId = material.id;
     return true;
 }
 
