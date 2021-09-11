@@ -13,7 +13,7 @@ CUDA_DEVICE bool Lambertian::scatter(const Ray& inRay, const HitResult& hitResul
     if (Utils::nearZero(scatterDirection)) {
         scatterDirection = hitResult.normal;
     }
-    scattered = Ray(hitResult.position, normalize(scatterDirection), inRay.time);
+    scattered = Ray(inRay.at(hitResult.t), normalize(scatterDirection), inRay.time);
     attenuation = albedo;
     return true;
 }

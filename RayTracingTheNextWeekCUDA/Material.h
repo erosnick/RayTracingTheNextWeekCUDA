@@ -15,29 +15,34 @@ enum class MaterialType : uint8_t {
 class Material {
 public:
     CUDA_DEVICE virtual bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const = 0;
+    uint32_t id;
+    MaterialType type;
 };
 
 class Lambertian : public Material {
 public:
-    CUDA_DEVICE Lambertian(const Float3& inAlbedo, Float inAbsorb)
+    CUDA_DEVICE Lambertian() {}
+    CUDA_DEVICE Lambertian(uint32_t inId, const Float3& inAlbedo, Float inAbsorb)
         : albedo(inAlbedo), absorb(inAbsorb) {
+        id = inId;
+        type = MaterialType::Lambertian;
     }
 
     CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override;
     Float3 albedo;
     Float absorb;
-    MaterialType type = MaterialType::Lambertian;
 };
 
 class Metal : public Material {
 public:
-    CUDA_DEVICE Metal(const Float3& inAlbedo, Float inFuzz = 1.0f)
+    CUDA_DEVICE Metal(uint32_t inId, const Float3& inAlbedo, Float inFuzz = 1.0f)
     : albedo(inAlbedo), fuzz(inFuzz < 1.0f ? inFuzz : 1.0f) {
+        id = inId;
     }
 
     CUDA_DEVICE inline bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
         auto reflected = Utils::reflect(normalize(inRay.direction), hitResult.normal);
-        scattered = Ray(hitResult.position, reflected + fuzz * Utils::randomInUnitSphere(randState), inRay.time);
+        scattered = Ray(inRay.at(hitResult.t), reflected + fuzz * Utils::randomInUnitSphere(randState), inRay.time);
         auto bScatter = (dot(scattered.direction, hitResult.normal) > 0);
         attenuation = albedo * bScatter;
         return bScatter;
@@ -50,8 +55,9 @@ public:
 
 class Dieletric : public Material {
 public:
-    CUDA_DEVICE Dieletric(Float inIndexOfRefraction)
+    CUDA_DEVICE Dieletric(uint32_t inId, Float inIndexOfRefraction)
     : indexOfRefraction(inIndexOfRefraction) {
+        id = inId;
     }
 
     CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
@@ -85,7 +91,7 @@ public:
             direction = Utils::refract(unitDirection, hitResult.normal, refractionRatio);
         }
 
-        scattered = Ray(hitResult.position, normalize(direction), inRay.time);
+        scattered = Ray(inRay.at(hitResult.t), normalize(direction), inRay.time);
 
         return true;
     }
@@ -104,29 +110,17 @@ private:
 
 class Emission : public Material {
 public:
-    CUDA_DEVICE Emission(const Float3& inAlbedo, Float inIntensity = 1.0f)
+    CUDA_DEVICE Emission(uint32_t inId, const Float3& inAlbedo, Float inIntensity = 1.0f)
     : albedo(inAlbedo), intensity(inIntensity) {
+        id = inId;
+        type = MaterialType::Emission;
     }
 
     CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
-        ////auto scatterDirection = Utils::randomUnitVector(randState);                                         // Diffuse1
-        //auto scatterDirection = hitResult.normal + Utils::randomUnitVector(randState);                      // Diffuse2
-        ////auto scatterDirection = Utils::randomHemiSphere(hitResult.normal, randState);                       // Diffuse3
-        ////auto scatterDirection = hitResult.normal + Utils::randomHemiSphere(hitResult.normal, randState);    // Diffuse4
-        ////auto scatterDirection = hitResult.normal + Utils::randomInUnitSphere(randState);                    // Diffuse5
-        //// Catch degenerate scatter direction
-        //// If the random unit vector we generate is exactly opposite the normal vector, 
-        //// the two will sum to zero, which will result in a zero scatter direction vector. 
-        //// This leads to bad scenarios later on (infinities and NaNs),
-        //if (Utils::nearZero(scatterDirection)) {
-        //    scatterDirection = hitResult.normal;
-        //}
-        //scattered = Ray(hitResult.position, normalize(scatterDirection), inRay.time);
         attenuation = albedo * intensity;
         return false;
     }
 
     Float3 albedo;
     Float intensity;
-    MaterialType type = MaterialType::Emission;
 };

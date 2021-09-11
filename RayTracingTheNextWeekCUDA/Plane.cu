@@ -1,4 +1,5 @@
 #include "Plane.h"
+#include "Material.h"
 
 CUDA_HOST_DEVICE bool Plane::hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const {
     // Assuming vectors are all normalized
@@ -11,16 +12,16 @@ CUDA_HOST_DEVICE bool Plane::hit(const Ray& ray, Float tMin, Float tMax, HitResu
     if (shouldProcced) {
         Float3 po = position - ray.origin;
         hitResult.t = dot(po, normal) / denominator;
-        hitResult.position = ray.at(hitResult.t);
+        auto position = ray.at(hitResult.t);
         hitResult.setFaceNormal(ray, normal);
-        hitResult.material = material;
+        //hitResult.material = material;
+        hitResult.materialId = material->id;
         auto inRange = false;
-        if ((hitResult.position.x > -extend.x && hitResult.position.x < extend.x)
-         && (hitResult.position.z > -extend.z && hitResult.position.z < extend.z)) {
+        if ((position.x > -extend.x && position.x < extend.x)
+         && (position.z > -extend.z && position.z < extend.z)) {
             inRange = true;
         }
-        hitResult.bHit = (hitResult.t >= tMin && hitResult.t < tMax) && inRange;
-        return hitResult.bHit;
+        return (hitResult.t >= tMin && hitResult.t < tMax) && inRange;
     }
 
     return false;

@@ -38,7 +38,7 @@ bool bMiddleMouseButtonDown = false;
 
 Float2 lastMousePosition = { 0.0f, 0.0f };
 
-Float rotateSpeed = 1.0f;
+Float rotateSpeed = 5.0f;
 
 void APIENTRY glDebugOutput(GLenum source,
     GLenum type,

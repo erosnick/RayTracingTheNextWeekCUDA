@@ -69,6 +69,20 @@ objects:
            - 1.0
            - 1.0
            - 1.0
+  # - sphere:
+  #     center:
+  #       - 0.0
+  #       - 0.0
+  #       - 1002
+  #     radius: 1000
+  #     materialId: 2
+  #     type: 0
+  #     material:
+  #        type: 0
+  #        albedo:
+  #          - 1.0
+  #          - 1.0
+  #          - 1.0
   - sphere:
       center:
         - -0.25

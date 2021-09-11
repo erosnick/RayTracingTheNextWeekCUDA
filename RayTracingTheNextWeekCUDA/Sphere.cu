@@ -27,12 +27,12 @@ CUDA_DEVICE bool Sphere::hit(const Ray& ray, Float tMin, Float tMax, HitResult& 
         }
     }
 
-    hitResult.bHit = true;
     hitResult.t = root;
-    hitResult.position = ray.at(hitResult.t);
-    auto outwardNormal = (hitResult.position - center) / radius;
+    auto position = ray.at(hitResult.t);
+    auto outwardNormal = (position - center) / radius;
     hitResult.setFaceNormal(ray, outwardNormal);
-    hitResult.material = material;
+    //hitResult.material = material;
+    hitResult.materialId = material->id;
     return true;
 }
 
@@ -63,12 +63,12 @@ CUDA_DEVICE bool MovingSphere::hit(const Ray& ray, Float tMin, Float tMax, HitRe
         }
     }
 
-    hitResult.bHit = true;
     hitResult.t = root;
-    hitResult.position = ray.at(hitResult.t);
-    auto outwardNormal = (hitResult.position - center(ray.time)) / radius;
+    auto position = ray.at(hitResult.t);
+    auto outwardNormal = (position - center(ray.time)) / radius;
     hitResult.setFaceNormal(ray, outwardNormal);
-    hitResult.material = material;
+    //hitResult.material = material;
+    hitResult.materialId = material->id;
     return true;
 }
 
