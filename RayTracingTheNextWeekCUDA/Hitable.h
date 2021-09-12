@@ -5,10 +5,11 @@
 
 enum class PrimitiveType : uint8_t {
     Sphere,
-    Plane
+    Plane,
+    Triangle
 };
 
 class Hitable {
 public:
-    CUDA_HOST_DEVICE virtual bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const = 0;
+    CUDA_DEVICE virtual bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const = 0;
 };

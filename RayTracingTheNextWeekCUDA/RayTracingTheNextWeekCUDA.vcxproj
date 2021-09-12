@@ -20,9 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Buffer.cu" />
+    <CudaCompile Include="Cube.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="Material.cu" />
+    <CudaCompile Include="Mesh.cu" />
     <CudaCompile Include="Processor.cu" />
+    <CudaCompile Include="Triangle.cu" />
     <CudaCompile Include="Utils.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -30,6 +33,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Canvas.h" />
     <ClInclude Include="Constants.h" />
+    <ClInclude Include="Cube.h" />
     <ClInclude Include="CUDATypes.h" />
     <ClInclude Include="cutil_math.h" />
     <ClInclude Include="Filesystem.h" />
@@ -49,11 +53,14 @@
     <ClInclude Include="main.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="HitResult.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="ModelLoader.h" />
     <ClInclude Include="Plane.h" />
     <ClInclude Include="Processor.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Sphere.h" />
+    <ClInclude Include="Triangle.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="YAML.h" />
   </ItemGroup>
@@ -68,6 +75,7 @@
     <ClCompile Include="imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="ModelLoader.cpp" />
     <ClCompile Include="OpenGLFrontend.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GPU-Realtime|x64'">false</ExcludedFromBuild>
@@ -201,7 +209,7 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr --suppress-stack-size-warning %(AdditionalOptions)</AdditionalOptions>
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <FastMath>true</FastMath>

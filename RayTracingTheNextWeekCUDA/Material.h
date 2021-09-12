@@ -92,7 +92,6 @@ public:
         }
 
         scattered = Ray(inRay.at(hitResult.t), normalize(direction), inRay.time);
-
         return true;
     }
 

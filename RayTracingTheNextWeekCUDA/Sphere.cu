@@ -8,7 +8,7 @@ CUDA_DEVICE bool Sphere::hit(const Ray& ray, Float tMin, Float tMax, HitResult& 
     auto discriminant = halfB * halfB - a * c;
     // Cant's use Math::epsilon(0.001f) for comparison here
     // Because it's not small enough(Not precise enough)
-    auto bHit = (discriminant > 0.0f);
+    auto bHit = (discriminant > FLT_EPSILON);
 
     if (!bHit) {
         return false;
@@ -44,7 +44,7 @@ CUDA_DEVICE bool MovingSphere::hit(const Ray& ray, Float tMin, Float tMax, HitRe
     auto discriminant = halfB * halfB - a * c;
     // Cant's use Math::epsilon(0.001f) for comparison here
     // Because it's not small enough(Not precise enough)
-    auto bHit = (discriminant > 0.0f);
+    auto bHit = (discriminant > FLT_EPSILON);
 
     if (!bHit) {
         return false;

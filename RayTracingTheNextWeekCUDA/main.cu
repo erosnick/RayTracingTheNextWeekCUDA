@@ -7,10 +7,15 @@
 #include "GPUTimer.h"
 #include "Sphere.h"
 #include "Plane.h"
+#include "Triangle.h"
+#include "Mesh.h"
+#include "Cube.h"
 #include "YAML.h"
+#include "ModelLoader.h"
 
 #include <yaml-cpp/yaml.h>
 #include <cstdio>
+#include <algorithm>
 
 template<typename T>
 T* createObjectPtr() {
@@ -52,18 +57,18 @@ CUDA_GLOBAL void deleteDeviceObjectArray(T** object, int32_t count) {
 
 constexpr auto BOUNCES = 4;
 
-constexpr auto SPHERES = 8;
-constexpr auto MATERIALS = 10;
-CUDA_CONSTANT Hitable* constantSpheres[SPHERES];
+constexpr auto OBJECTS = 7;
+constexpr auto MATERIALS = 6;
+CUDA_CONSTANT Hitable* constantObjects[OBJECTS];
 CUDA_CONSTANT Material* constantMaterials[MATERIALS];
 
 CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) {
     HitResult tempHitResult;
     bool bHitAnything = false;
     Float closestSoFar = tMax;
-    for (auto& sphere : constantSpheres) {
+    for (auto& object : constantObjects) {
         // Empty hit call costs ~130ms
-        if (sphere->hit(ray, tMin, closestSoFar, tempHitResult)) {
+        if (object->hit(ray, tMin, closestSoFar, tempHitResult)) {
             bHitAnything = true;
             closestSoFar = tempHitResult.t;
             hitResult = tempHitResult;
@@ -104,7 +109,6 @@ CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState) {
             // Bounces 4 Samples 100 18ms
             // Bounces 4 Samples 100 33ms(Empty scatter function body)
             if (constantMaterials[hitResult.materialId]->scatter(currentRay, hitResult, attenuation, scattered, randState)) {
-            //if (lambertianScatter(currentRay, hitResult, attenuation, scattered, randState)) {
                 currentAttenuation *= attenuation;
                 currentRay = scattered;
             }
@@ -197,7 +201,7 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
 #ifdef GPU_REALTIME
     constexpr auto samplesPerPixel = 1;
 #else
-    constexpr auto samplesPerPixel = 1024;
+    constexpr auto samplesPerPixel = 8;
 #endif // GPU_REALTIME
 
     constexpr auto maxDepth = 5;
@@ -229,7 +233,7 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
         auto old = atomicAdd(counter, 1);
 
         if ((old + 1) > 0 && (old + 1) % tenPercent == 0) {
-            printf("%.2f%%\n", (float((old + 1) * 100) / (width * height)));
+            printf("Complete: %.2f%%\n", (float((old + 1) * 100) / (width * height)));
         }
 #endif // GPU_REALTIME
     }
@@ -302,12 +306,39 @@ void createMovingSphere(Hitable** sphere, int32_t index, Float3 center0, Float3 
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createPlaneKernel(Hitable** plane , int32_t index, Float3 position, Float3 normal, Float3 extend, Material* material) {
-    *(plane + index) = new Plane(position, normal, extend, material);
+CUDA_GLOBAL void createPlaneKernel(Hitable** plane , int32_t index, Float3 position, Float3 normal, Float3 extend, Material* material, PlaneOrientation orientation) {
+    *(plane + index) = new Plane(position, normal, extend, material, orientation);
 }
 
-void createPlane(Hitable** plane, int32_t index, const Float3& position, const Float3& normal, const Float3& extend, Material* material) {
-    createPlaneKernel<<<1, 1>>>(plane, index, position, normal, extend, material);
+void createPlane(Hitable** plane, int32_t index, const Float3& position, const Float3& normal, const Float3& extend, Material* material, PlaneOrientation orientation) {
+    createPlaneKernel<<<1, 1>>>(plane, index, position, normal, extend, material, orientation);
+    gpuErrorCheck(cudaDeviceSynchronize());
+}
+
+CUDA_GLOBAL void createTriangleKernel(Hitable** triangle, int32_t index, Float3 v0, Float3 v1, Float3 v2, Material* material) {
+    *(triangle + index) = new Triangle(v0, v1, v2, material);
+}
+
+void createTriangle(Hitable** triangle, int32_t index, const Float3& v0, const Float3& v1, const Float3& v2, Material* material) {
+    createTriangleKernel<<<1, 1>>>(triangle, index, v0, v1, v2, material);
+    gpuErrorCheck(cudaDeviceSynchronize());
+}
+
+CUDA_GLOBAL void createMeshKernel(Hitable** mesh, int32_t index, Hitable** triangles, int32_t triangleCount, Material* material) {
+    *(mesh + index) = new Mesh(triangles, triangleCount, material);
+}
+
+void createMesh(Hitable** triangle, int32_t index, Hitable** triangles, int32_t triangleCount, Material* material) {
+    createMeshKernel<<<1, 1>>>(triangle, index, triangles, triangleCount, material);
+    gpuErrorCheck(cudaDeviceSynchronize());
+}
+
+CUDA_GLOBAL void createCubeKernel(Hitable** cube, int32_t index, Float3 position, Hitable** faces, Material* material) {
+    *(cube + index) = new Cube(position, faces, material);
+}
+
+void createCube(Hitable** triangle, int32_t index, Float3 position, Hitable** faces, Material* material) {
+    createCubeKernel<<<1, 1>>>(triangle, index, position, faces, material);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
@@ -321,14 +352,17 @@ int32_t width = 512;
 int32_t height = 512;
 #elif RESOLUTION == 2
 int32_t width = 1024;
-int32_t height = 576;
+int32_t height = 1024;
 #elif RESOLUTION == 3
+int32_t width = 1024;
+int32_t height = 576;
+#elif RESOLUTION == 4
 int32_t width = 1280;
 int32_t height = 720;
-#elif RESOLUTION == 4
+#elif RESOLUTION == 5
 int32_t width = 1920;
 int32_t height = 1080;
-#elif RESOLUTION == 5
+#elif RESOLUTION == 6
 int32_t width = 64;
 int32_t height = 36;
 #endif
@@ -338,6 +372,8 @@ int32_t height = 36;
 Canvas* canvas = nullptr;
 Camera* camera = nullptr;
 Hitable** spheres = nullptr;
+Hitable** triangles = nullptr;
+int32_t triangleCount = 0;
 //std::vector<Material**> materials(MATERIALS);
 Material** materials = nullptr;
 curandState* randStates = nullptr;
@@ -392,7 +428,7 @@ void initialize(int32_t width, int32_t height) {
 
     materials = createObjectPtrArray<Material*>(MATERIALS);
 
-    spheres = createObjectPtrArray<Hitable*>(SPHERES);
+    spheres = createObjectPtrArray<Hitable*>(OBJECTS);
 
 #if SCENE == 0
     // If the distance between object and camera equals to focus lens
@@ -405,13 +441,13 @@ void initialize(int32_t width, int32_t height) {
     camera->initialize(eye, center, up, Float(width) / height, 20.0f, aperture, focusDistance, 0.0f, 1.0f);
 
     // Scene1 Defocus Blur
-    createDieletricMaterial(materials[0], 1.5f);
-    createDieletricMaterial(materials[1], 1.5f);
-    createLambertianMaterial(materials[2], make_float3(0.1f, 0.2f, 0.5f));
+    createDieletricMaterial(materials, 0, 1.5f);
+    createDieletricMaterial(materials, 1, 1.5f);
+    createLambertianMaterial(materials, 2, make_float3(0.1f, 0.2f, 0.5f));
     //createDieletricMaterial<<<1, 1>>>(materials[3], 1.5f);
-    createMetalMaterial(materials[3], make_float3(0.8f, 0.6f, 0.2f), 0.0f);
+    createMetalMaterial(materials, 3, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
     //createLambertianMaterial<<<1, 1>>>(materials[4], make_float3(0.8f, 0.8f, 0.0f));
-    createMetalMaterial(materials[4], make_float3(0.5f, 0.7f, 1.0f), 0.0f);
+    createMetalMaterial(materials, 4, make_float3(0.5f, 0.7f, 1.0f), 0.0f);
 
     auto center1 = point(0.0f, 0.5f, 0.0f);
 
@@ -420,64 +456,219 @@ void initialize(int32_t width, int32_t height) {
     //createSphere(spheres, 2, {  0.0f, 0.0f, -1.0f },  0.5f, *(materials[2]));
     //createSphere(spheres, 3, {  1.0f, 0.0f, -1.0f },  0.5f, *(materials[3]));
     //createSphere(spheres, 4, {  0.0f, -100.5f, -1.0f }, 100.0f, *(materials[4]));
-    createSphere(spheres, 0, { -1.0f, 0.0f, -1.0f}, 0.5f, *(materials[0]));
-    createSphere(spheres, 1, { -1.0f, 0.0f, -1.0f }, -0.4f, *(materials[1]), false);
-    createMovingSphere(spheres, 2, {  0.0f, 0.0f, -1.0f }, { 0.0f, 0.5f, -1.0f }, 0.0f, 1.0f, 0.5f, *(materials[2]));
-    createSphere(spheres, 3, {  1.0f, 0.0f, -1.0f },  0.5f, *(materials[3]));
-    createSphere(spheres, 4, {  0.0f, -100.5f, -1.0f }, 100.0f, *(materials[4]));
+    createSphere(spheres, 0, { -1.0f, 0.0f, -1.0f}, 0.5f, materials[0]);
+    createSphere(spheres, 1, { -1.0f, 0.0f, -1.0f }, -0.4f, materials[1], false);
+    createMovingSphere(spheres, 2, {  0.0f, 0.0f, -1.0f }, { 0.0f, 0.5f, -1.0f }, 0.0f, 1.0f, 0.5f, materials[2]);
+    createSphere(spheres, 3, {  1.0f, 0.0f, -1.0f },  0.5f, materials[3]);
+    createSphere(spheres, 4, {  0.0f, -100.5f, -1.0f }, 100.0f, materials[4]);
 #elif SCENE == 1
     // If the distance between object and camera equals to focus lens
     // then the object is in focus
-    auto eye = point(0.0f, 0.0f, 1.25f);
+    auto eye = point(0.0f, 0.0f, 10.0f);
     auto center = point(0.0f, 0.0f, -1.0f);
     auto up = point(0.0f, 1.0f, 0.0f);
     auto focusDistance = length(center - eye);
     auto aperture = 0.0f;
-    camera->initialize(eye, center, up, Float(width) / height, 60.0f, aperture, focusDistance, 0.0f, 1.0f);
+    camera->initialize(eye, center, up, Float(width) / height, 20.0f, aperture, focusDistance, 0.0f, 1.0f);
+
+    // Scene1 Defocus Blur
+    //createDieletricMaterial(materials, 0, 1.5f);
+    //createDieletricMaterial(materials, 1, 1.5f);
+    //createLambertianMaterial(materials, 2, make_float3(0.1f, 0.2f, 0.5f));
+    createLambertianMaterial(materials, 0, make_float3(1.0f, 0.0f, 0.0f));
+    createLambertianMaterial(materials, 1, make_float3(0.0f, 1.0f, 0.0f));
+    createLambertianMaterial(materials, 2, make_float3(0.0f, 0.0f, 1.0f));
+    createLambertianMaterial(materials, 3, make_float3(1.0f, 1.0f, 1.0f));
+    createLambertianMaterial(materials, 4, make_float3(0.8f, 0.8f, 0.9f));
+    //createDieletricMaterial<<<1, 1>>>(materials[3], 1.5f);
+    //createMetalMaterial(materials, 3, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
+    //createLambertianMaterial(materials, 4, make_float3(0.8f, 0.8f, 0.0f));
+    //createMetalMaterial(materials, 4, make_float3(0.5f, 0.7f, 1.0f), 0.0f);
+
+    auto center1 = point(0.0f, 0.5f, 0.0f);
+
+    //createSphere(spheres, 0, { -1.0f, 0.0f, -1.0f}, 0.5f, *(materials[0]));
+    //createSphere(spheres, 1, { -1.0f, 0.0f, -1.0f }, -0.4f, *(materials[1]), false);
+    //createSphere(spheres, 2, {  0.0f, 0.0f, -1.0f },  0.5f, *(materials[2]));
+    //createSphere(spheres, 3, {  1.0f, 0.0f, -1.0f },  0.5f, *(materials[3]));
+    //createSphere(spheres, 4, {  0.0f, -100.5f, -1.0f }, 100.0f, *(materials[4]));
+
+    //auto model = loadModel("./resources/models/bunny/bunny.obj");
+    //auto model = loadModel("./resources/models/cube/cube.obj");
+    //auto model = loadModel("./resources/models/plane/plane.obj");
+    //auto model = loadModel("./resources/models/test/test.obj");
+    auto model = loadModel("./resources/models/suzanne/suzanne.obj");
+
+    std::vector<Float> positionX;
+    std::vector<Float> positionY;
+    std::vector<Float> positionZ;
+
+    for (const auto& vertex : model) {
+        positionX.push_back(vertex.x);
+        positionY.push_back(vertex.y);
+        positionZ.push_back(vertex.z);
+    }
+
+    std::sort(positionX.begin(), positionX.end());
+    std::sort(positionY.begin(), positionY.end());
+    std::sort(positionZ.begin(), positionZ.end());
+
+    Float3 minAABB = { positionX[0], positionY[0], positionZ[0] };
+    Float3 maxAABB = { positionX[positionX.size()- 1],  positionY[positionY.size() - 1], positionZ[positionZ.size() - 1] };
+
+    Float3 extendAABB = (maxAABB - minAABB) * 0.5f;
+
+    Float3 centerAABB = (minAABB + maxAABB) * 0.5f;
+
+    triangleCount = model.size() / 3;
+    triangles = createObjectPtrArray<Hitable*>(triangleCount);
+
+    //for (auto i = 0; i < triangleCount; i++) {
+    //    createTriangle(triangles, i, model[i * 3], model[i * 3 + 1], model[i * 3 + 2], materials[3]);
+    //}
+
+    //createMesh(spheres, 0, triangles, triangleCount, materials[0]);
+
+    createSphere(spheres, 0, { 0.0f, -102.0f, -1.0f }, 100.0f, materials[4]);
+
+    createPlane(spheres, 1, { centerAABB.x - extendAABB.x, centerAABB.y, centerAABB.z }, { -1.0f, 0.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::YZ);   // Left
+    createPlane(spheres, 2, { centerAABB.x + extendAABB.x, centerAABB.y, centerAABB.z }, {  1.0f, 0.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::YZ);   // Right
+    createPlane(spheres, 3, { centerAABB.x, centerAABB.y + extendAABB.y, centerAABB.z }, { 0.0f,  1.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::XZ);   // Top
+    createPlane(spheres, 4, { centerAABB.x, centerAABB.y - extendAABB.y, centerAABB.z }, { 0.0f, -1.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::XZ);   // Bottom
+    createPlane(spheres, 5, { centerAABB.x, centerAABB.y, centerAABB.z + extendAABB.z }, { 0.0f, 0.0f,  1.0f }, extendAABB, materials[0], PlaneOrientation::XY);   // Front
+    createPlane(spheres, 6, { centerAABB.x, centerAABB.y, centerAABB.z - extendAABB.z }, { 0.0f, 0.0f, -1.0f }, extendAABB, materials[0], PlaneOrientation::XY);   // Back
+
+#elif SCENE == 2
+    // If the distance between object and camera equals to focus lens
+    // then the object is in focus
+    YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox.yaml");
+
+    auto eye = scene["camera"]["eye"].as<Float3>();
+    auto center = scene["camera"]["center"].as<Float3>();
+    auto up = scene["camera"]["up"].as<Float3>();
+    auto focusDistance = length(center - eye);
+    auto aperture = scene["camera"]["aperture"].as<Float>();
+    auto fov = scene["camera"]["fov"].as<Float>();
+    camera->initialize(eye, center, up, Float(width) / height, fov, aperture, focusDistance, 0.0f, 1.0f);
 
     //// Scene1 Defocus Blur
     ////createLambertianMaterial(materials[0], make_float3(0.0f, 1.0f, 0.0f));
     ////createLambertianMaterial(materials[1], make_float3(1.0f, 0.0f, 0.0f));
     //createLambertianMaterial(materials, 2, make_float3(1.0f, 1.0f, 1.0f));
-    createDieletricMaterial(materials, 3, 1.5f);
-    createMetalMaterial(materials, 4, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
-    createLambertianMaterial(materials, 5, make_float3(0.8f, 0.8f, 0.0f));
-    createMetalMaterial(materials, 6, make_float3(0.5f, 0.7f, 1.0f), 0.0f);
+    //createDieletricMaterial(materials, 3, 1.5f);
+    //createMetalMaterial(materials, 4, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
+    //createMetalMaterial(materials, 4, make_float3(1.0f, 1.0f, 1.0f), 0.0f);
+    //createLambertianMaterial(materials, 5, make_float3(0.8f, 0.8f, 0.0f));
+    //createMetalMaterial(materials, 6, make_float3(0.5f, 0.7f, 1.0f), 0.0f);
 
     ////createLambertianMaterial(materials[5], make_float3(1.0f, 1.0f, 1.0f));
-    createDieletricMaterial(materials, 7, 1.5f);
-    createDieletricMaterial(materials, 8, 1.5f);
-    createEmissionMaterial(materials, 9, make_float3(1.0f, 1.0f, 1.0f), 15.0f);
-
-    YAML::Node scene = YAML::LoadFile("./resources/scenes/scene.yaml");
+    //createDieletricMaterial(materials, 7, 1.5f);
+    //createDieletricMaterial(materials, 8, 1.5f);
+    //createEmissionMaterial(materials, 5, make_float3(1.0f, 1.0f, 1.0f), 10.0f);
 
     auto objects = scene["objects"];
 
-    for (auto i = 0; i < SPHERES - 1; i++) {
-        auto object = objects[i];
+    for (auto i = 0; i < OBJECTS; i++) {
+        // 场景的构成是objects是几何体数组
+        // 数组的元素是Map，其中又包含若干几何体属性Map
+        // objects:
+        //    -sphere : # Left
+        //        type : 0
+        //        center :
+        //          - -1000.5
+        //          -  0.0
+        //          -  0.0
+        //        radius : 1000
+        //        materialId : 1
+        //        material :
+        //        type : 0
+        //        albedo :
+        //          - 0.75
+        //          - 0.25
+        //          - 0.25
+        // 表示Map中第一个元素的迭代器，这里sphere是一个Map
+        // 这里的key就是字符串"sphere"
+        auto iterator = objects[i].begin();
+        auto key = iterator->first.as<std::string>();
 
-        auto center = object["sphere"]["center"].as<Float3>();
-        auto radius = object["sphere"]["radius"].as<Float>();
-        auto materialId = object["sphere"]["materialId"].as<uint32_t>();
-        auto materialType = static_cast<MaterialType>(object["sphere"]["material"]["type"].as<uint8_t>());
+        auto object = objects[i][key];
+
+        auto materialType = static_cast<MaterialType>(object["material"]["type"].as<uint8_t>());
+
+        iterator = object.begin();
+
+        auto materialId = object["materialId"].as<uint32_t>();
 
         switch (materialType) {
             case MaterialType::Lambertian: {
-                auto albedo = object["sphere"]["material"]["albedo"].as<Float3>();
+                auto albedo = object["material"]["albedo"].as<Float3>();
+
                 if ((materials[materialId]) == nullptr) {
                     createLambertianMaterial(materials, materialId, albedo);
                 }
             }
         
             break;
-        default:
+            case MaterialType::Dieletric: {
+                auto indexOfRefraction = object["material"]["indexOfRefraction"].as<Float>();
+
+                if ((materials[materialId]) == nullptr) {
+                    createDieletricMaterial(materials, materialId, indexOfRefraction);
+                }
+            }
+                                        
+            break;
+            case MaterialType::Metal: {
+                auto albedo = object["material"]["albedo"].as<Float3>();
+                auto fuzz = object["material"]["fuzz"].as<Float>();
+
+                if ((materials[materialId]) == nullptr) {
+                    createMetalMaterial(materials, materialId, albedo, fuzz);
+                }
+            }
+
+            break;
+            case MaterialType::Emission: {
+                auto albedo = object["material"]["albedo"].as<Float3>();
+                auto intensity = object["material"]["intensity"].as<Float>();
+
+                if ((materials[materialId]) == nullptr) {
+                    createEmissionMaterial(materials, materialId, albedo, intensity);
+                }
+            }
+        }
+
+        auto primitiveType = static_cast<PrimitiveType>(iterator->second.as<uint8_t>());
+
+        switch (primitiveType) {
+            case PrimitiveType::Sphere: {
+                auto center = object["center"].as<Float3>();
+                auto radius = object["radius"].as<Float>();
+
+                createSphere(spheres, i, center, radius, materials[materialId]);
+            }
+            
+            break;
+            case PrimitiveType::Plane: {
+                auto position = object["position"].as<Float3>();
+                auto normal = object["normal"].as<Float3>();
+                auto extend = object["extend"].as<Float3>();
+
+                createPlane(spheres, i, position, normal, extend, materials[materialId]);
+            }
+
+            break;
+            case PrimitiveType::Triangle: {
+                auto v0 = object["v0"].as<Float3>();
+                auto v1 = object["v1"].as<Float3>();
+                auto v2 = object["v2"].as<Float3>();
+
+                createTriangle(spheres, i, v0, v1, v2, materials[materialId]);
+            }
+
             break;
         }
-        
-        createSphere(spheres, i, center, radius, materials[materialId]);
     }
-
-    createPlane(spheres, SPHERES - 1, { 0.0f, 0.495f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.125f, 0.125f, 0.125f }, materials[9]);
 
     //// If the distance between object and camera equals to focus lens
     //// then the object is in focus
@@ -567,7 +758,7 @@ void initialize(int32_t width, int32_t height) {
     createSphere(spheres, 487, point( 4.0f,     1.0f, 0.0f),    1.0f, *(materials[487]));
 
 #endif
-    gpuErrorCheck(cudaMemcpyToSymbol(constantSpheres, spheres, sizeof(Hitable*) * SPHERES));
+    gpuErrorCheck(cudaMemcpyToSymbol(constantObjects, spheres, sizeof(Hitable*) * OBJECTS));
     gpuErrorCheck(cudaMemcpyToSymbol(constantMaterials, materials, sizeof(Material*) * MATERIALS));
 
     auto pixelCount = width * height;
@@ -621,11 +812,13 @@ void pathTracing() {
 void cleanup() {
     deleteObject(randStates);
 
-    deleteDeviceObjectArray<<<1, 1>>>(spheres, SPHERES);
+    deleteDeviceObjectArray<<<1, 1>>>(triangles, triangleCount);
+    deleteDeviceObjectArray<<<1, 1>>>(spheres, OBJECTS);
     deleteDeviceObjectArray<<<1, 1>>>(materials, MATERIALS);
 
     gpuErrorCheck(cudaDeviceSynchronize());
 
+    deleteObject(triangles);
     deleteObject(spheres);
     deleteObject(materials);
 

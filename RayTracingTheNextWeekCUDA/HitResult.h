@@ -13,7 +13,7 @@ struct HitResult {
     uint8_t materialId;
 
     CUDA_HOST_DEVICE inline void setFaceNormal(const Ray& ray, const Float3& outwardNormal) {
-        bFrontFace = dot(ray.direction, outwardNormal) < Math::epsilon;
+        bFrontFace = dot(ray.direction, outwardNormal) < FLT_EPSILON;
         normal = bFrontFace ? outwardNormal : -outwardNormal;
     }
 };
