@@ -573,6 +573,10 @@ inline __host__ __device__ float3 operator-(float3 a, float3 b)
 {
     return make_float3(a.x - b.x, a.y - b.y, a.z - b.z);
 }
+inline __host__ __device__ float4 operator-(float3 a, float4 b)
+{
+    return make_float4(a.x - b.x, a.y - b.y, a.z - b.z, 0.0f);
+}
 inline __host__ __device__ void operator-=(float3 &a, float3 b)
 {
     a.x -= b.x; a.y -= b.y; a.z -= b.z;
@@ -1199,6 +1203,10 @@ inline __host__ __device__ float dot(float3 a, float3 b)
 { 
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
+inline __host__ __device__ float dot(float4 a, float3 b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 inline __host__ __device__ float dot(float4 a, float4 b)
 { 
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
@@ -1390,6 +1398,16 @@ inline __host__ __device__ float3 reflect(float3 i, float3 n)
 inline __host__ __device__ float3 cross(float3 a, float3 b)
 { 
     return make_float3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x); 
+}
+
+inline __host__ __device__ float4 cross(float3 a, float4 b)
+{
+    return make_float4(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x, 0.0f);
+}
+
+inline __host__ __device__ float4 cross(float4 a, float4 b)
+{
+    return make_float4(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x, 0.0f);
 }
 
 inline __host__ __device__ double3 cross(double3 a, double3 b)

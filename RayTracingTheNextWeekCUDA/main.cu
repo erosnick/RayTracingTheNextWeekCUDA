@@ -218,7 +218,6 @@ int32_t height = 36;
 Canvas* canvas = nullptr;
 Camera* camera = nullptr;
 Hitable** spheres = nullptr;
-Hitable** triangles = nullptr;
 Hitable** AABB = nullptr;
 int32_t triangleCount = 0;
 Material** materials = nullptr;
@@ -401,7 +400,6 @@ void initialize(int32_t width, int32_t height) {
     Float3 centerAABB = (minAABB + maxAABB) * 0.5f;
 
     triangleCount = model.size() / 3;
-    triangles = createObjectPtrArray<Hitable*>(triangleCount);
 
     triangleData = createObjectArray<Float4>(model.size());
 
@@ -409,7 +407,9 @@ void initialize(int32_t width, int32_t height) {
         auto v0 = model[i * 3];
         auto v1 = model[i * 3 + 1];
         auto v2 = model[i * 3 + 2];
-        createTriangle(triangles, i, v0, v1, v2, materials[3]);
+        auto E1 = v1 - v0;
+        auto E2 = v2 - v0;
+        auto normal = normalize(cross(E1, E2));
         triangleData[i * 3] = make_float4(v0.x, v0.y, v0.z, 0.0f);
         triangleData[i * 3 + 1] = make_float4(v1.x, v1.y, v1.z, 0.0f);
         triangleData[i * 3 + 2] = make_float4(v2.x, v2.y, v2.z, 0.0f);
@@ -430,7 +430,7 @@ void initialize(int32_t width, int32_t height) {
     createSphere(spheres, 5, { -0.225f, -0.325f, -0.25f }, 0.175f, materials[6]);
     createSphere(spheres, 6, { 0.275f, -0.325f, -0.125f }, 0.175f, materials[7]);
     createPlane(spheres, 7, { 0.0f,  0.49f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.125f, 0.125f, 0.125f }, materials[8], PlaneOrientation::XZ, false);
-    createMesh(spheres, 8, triangles, triangleCount, triangleDataTexture, minAABB, maxAABB, materials[3]);
+    createMesh(spheres, 8, triangleCount, triangleDataTexture, minAABB, maxAABB, materials[3]);
     //createSphere(spheres, 5, { 0.0f, -102.0f, -1.0f }, 100.0f, materials[4]);
 
 #elif SCENE == 2
@@ -713,7 +713,6 @@ void cleanup() {
     gpuErrorCheck(cudaFree(triangleData));
     gpuErrorCheck(cudaDestroyTextureObject(triangleDataTexture));
     deleteObject(AABB);
-    deleteObject(triangles);
     deleteObject(spheres);
     deleteObject(materials);
 

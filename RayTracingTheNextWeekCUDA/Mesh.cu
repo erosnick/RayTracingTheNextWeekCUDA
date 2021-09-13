@@ -3,26 +3,12 @@
 #include "Material.h"
 
 CUDA_DEVICE Mesh::~Mesh() {
-    for (auto i = 0; i < triangleCount; i++) {
-        delete triangles[i];
-    }
 }
 
 CUDA_DEVICE bool Mesh::hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const {
     if (!AABB.intersect(ray)) {
         return false;
     }
-
-    //HitResult tempHitResult;
-    //auto bHitAnything = false;
-    //auto closestSoFar = tMax;
-    //for (auto i = 0; i < triangleCount; i++) {
-    //    if (triangles[i]->hit(ray, tMin, closestSoFar, tempHitResult)) {
-    //        bHitAnything = true;
-    //        closestSoFar = tempHitResult.t;
-    //        hitResult = tempHitResult;
-    //    }
-    //}
 
     auto bHitAnything = false;
     auto closestSoFar = tMax;
@@ -62,8 +48,7 @@ CUDA_DEVICE bool Mesh::hit(const Ray& ray, Float tMin, Float tMax, HitResult& hi
             && (b2 >= FLT_EPSILON)
             && ((1.0f - b1 - b2) >= FLT_EPSILON)) {
             hitResult.t = t;
-            auto normal = normalize(cross(E1, E2));
-            hitResult.setFaceNormal(ray, normal);
+            hitResult.setFaceNormal(ray, normalize(cross(E1, E2)));
             hitResult.materialId = material->id;
             bHitAnything = true;
             closestSoFar = t;

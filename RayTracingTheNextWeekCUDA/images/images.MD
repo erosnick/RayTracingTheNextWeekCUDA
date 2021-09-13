@@ -18,13 +18,13 @@ SPP 32
 512 x 512
 Bounces 10
 SPP 32
-5956.037 ms
+8123.669 ms
 
 ![avatar](/render_512x512_15bounces_32spp_AABB.png)
 512 x 512
 Bounces 15
 SPP 32
-7713.623 ms
+11066.682 ms
 
 - 使用AABB优化射线-三角形相交
 - 使用texture memory代替global memory
@@ -33,10 +33,10 @@ SPP 32
 512 x 512
 Bounces 15
 SPP 32
-3170.691 ms
+4264.963 ms
 
 ![avatar](/render_512x512_15bounces_32spp_AABB_texture_memory.png)
 512 x 512
 Bounces 15
 SPP 32
-4066.207 ms
+5742.368 ms
