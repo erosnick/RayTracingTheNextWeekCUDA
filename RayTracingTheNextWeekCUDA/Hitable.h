@@ -11,5 +11,7 @@ enum class PrimitiveType : uint8_t {
 
 class Hitable {
 public:
+    CUDA_DEVICE Hitable() {}
+    CUDA_DEVICE virtual ~Hitable() {}
     CUDA_DEVICE virtual bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const = 0;
 };

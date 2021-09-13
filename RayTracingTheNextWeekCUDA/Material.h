@@ -14,6 +14,8 @@ enum class MaterialType : uint8_t {
 
 class Material {
 public:
+    CUDA_DEVICE Material() {}
+    CUDA_DEVICE virtual ~Material() {}
     CUDA_DEVICE virtual bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const = 0;
     uint32_t id;
     MaterialType type;

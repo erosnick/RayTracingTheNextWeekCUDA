@@ -12,55 +12,19 @@
 #include "Cube.h"
 #include "YAML.h"
 #include "ModelLoader.h"
+#include "kernels.h"
 
 #include <yaml-cpp/yaml.h>
 #include <cstdio>
 #include <algorithm>
 
-template<typename T>
-T* createObjectPtr() {
-    T* object = nullptr;
-    gpuErrorCheck(cudaMallocManaged(&object, sizeof(T*)));
-    return object;
-}
+constexpr auto BOUNCES = 10;
 
-template<typename T>
-T* createObjectArray(int32_t numObjects) {
-    T* object = nullptr;
-    gpuErrorCheck(cudaMallocManaged(&object, sizeof(T) * numObjects));
-    return object;
-}
-
-template<typename T>
-T* createObjectPtrArray(int32_t numObjects) {
-    T* object = nullptr;
-    gpuErrorCheck(cudaMallocManaged(&object, sizeof(T) * numObjects));
-    return object;
-}
-
-template<typename T>
-void deleteObject(T* object) {
-    gpuErrorCheck(cudaFree(object));
-}
-
-template<typename T>
-CUDA_GLOBAL void deleteDeviceObject(T** object) {
-    delete (*object);
-}
-
-template<typename T>
-CUDA_GLOBAL void deleteDeviceObjectArray(T** object, int32_t count) {
-    for (auto i = 0; i < count; i++) {
-        delete *(object + i);
-    }
-}
-
-constexpr auto BOUNCES = 4;
-
-constexpr auto OBJECTS = 7;
-constexpr auto MATERIALS = 6;
+constexpr auto OBJECTS = 9;
+constexpr auto MATERIALS = 9;
 CUDA_CONSTANT Hitable* constantObjects[OBJECTS];
 CUDA_CONSTANT Material* constantMaterials[MATERIALS];
+CUDA_CONSTANT Float3 constantFloats[5000];
 
 CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) {
     HitResult tempHitResult;
@@ -81,21 +45,6 @@ CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResul
 using ScatterFunction = bool (*)(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState);
 
 CUDA_DEVICE ScatterFunction scatterFunction;
-
-CUDA_DEVICE bool lambertianScatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) {
-    auto scatterDirection = hitResult.normal + Utils::randomUnitVector(randState);
-    if (Utils::nearZero(scatterDirection)) {
-        scatterDirection = hitResult.normal;
-    }
-    scattered = Ray(inRay.at(hitResult.t), normalize(scatterDirection), inRay.time);
-    attenuation = make_float3(1.0f, 1.0f, 1.0f);
-    return true;
-}
-
-CUDA_DEVICE bool emissionScatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) {
-    attenuation = make_float3(1.0f, 1.0f, 1.0f) * 5.0f;
-    return false;
-}
 
 CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState) {
     Ray currentRay = ray;
@@ -201,7 +150,7 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
 #ifdef GPU_REALTIME
     constexpr auto samplesPerPixel = 1;
 #else
-    constexpr auto samplesPerPixel = 8;
+    constexpr auto samplesPerPixel = 32;
 #endif // GPU_REALTIME
 
     constexpr auto maxDepth = 5;
@@ -239,109 +188,6 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
     }
 }
 
-CUDA_GLOBAL void createLambertianMaterialKernel(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
-    *(material + index) = new Lambertian(index, albedo, absorb);
-}
-
-void createLambertianMaterial(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
-    createLambertianMaterialKernel<<<1, 1>>>(material, index, albedo, absorb);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createEmissionMaterialKernel(Material** material, int32_t index, Float3 albedo, Float intensity = 1.0f) {
-    *(material + index) = new Emission(index, albedo, intensity);
-}
-
-void createEmissionMaterial(Material** material, int32_t index, Float3 albedo, Float intensity = 1.0f) {
-    createEmissionMaterialKernel<<<1, 1>>>(material, index, albedo, intensity);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createMetalMaterialKernel(Material** material, int32_t index, Float3 albedo, Float fuzz = 1.0f) {
-    *(material + index) = new Metal(index, albedo, fuzz);
-}
-
-void createMetalMaterial(Material** material, int32_t index, Float3 albedo, Float fuzz = 1.0f) {
-    createMetalMaterialKernel<<<1, 1>>>(material, index, albedo, fuzz);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createDieletricMaterialKernel(Material** material, int32_t index, Float indexOfRefraction = 1.5f) {
-    *(material + index) = new Dieletric(index, indexOfRefraction);
-}
-
-void createDieletricMaterial(Material** material, int32_t index, Float indexOfRefraction = 1.5f) {
-    createDieletricMaterialKernel<<<1, 1>>>(material, index, indexOfRefraction);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void clearBackBuffers(Canvas* canvas) {
-    auto x = threadIdx.x + blockDim.x * blockIdx.x;
-    auto y = threadIdx.y + blockDim.y * blockIdx.y;
-    auto width = canvas->getWidth();
-    auto height = canvas->getHeight();
-
-    auto index = y * width + x;
-
-    if (index < (width * height)) {
-        canvas->clearPixel(index);
-    }
-}
-
-CUDA_GLOBAL void createSphereKernel(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading) {
-    *(sphere + index) = new Sphere(center, radius, material, bShading);
-}
-
-void createSphere(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading = true) {
-    createSphereKernel<<<1, 1>>>(sphere, index, center, radius, material, bShading);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createMovingSphereKernel(Hitable** sphere, int32_t index, Float3 center0, Float3 center1, Float time0, Float time1, Float radius, Material* material) {
-    *(sphere + index) = new MovingSphere(center0, center1, time0, time1, radius, material);
-}
-
-void createMovingSphere(Hitable** sphere, int32_t index, Float3 center0, Float3 center1, Float time0, Float time1, Float radius, Material* material) {
-    createMovingSphereKernel<<<1, 1>>>(sphere, index, center0, center1, time0, time1, radius, material);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createPlaneKernel(Hitable** plane , int32_t index, Float3 position, Float3 normal, Float3 extend, Material* material, PlaneOrientation orientation) {
-    *(plane + index) = new Plane(position, normal, extend, material, orientation);
-}
-
-void createPlane(Hitable** plane, int32_t index, const Float3& position, const Float3& normal, const Float3& extend, Material* material, PlaneOrientation orientation) {
-    createPlaneKernel<<<1, 1>>>(plane, index, position, normal, extend, material, orientation);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createTriangleKernel(Hitable** triangle, int32_t index, Float3 v0, Float3 v1, Float3 v2, Material* material) {
-    *(triangle + index) = new Triangle(v0, v1, v2, material);
-}
-
-void createTriangle(Hitable** triangle, int32_t index, const Float3& v0, const Float3& v1, const Float3& v2, Material* material) {
-    createTriangleKernel<<<1, 1>>>(triangle, index, v0, v1, v2, material);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createMeshKernel(Hitable** mesh, int32_t index, Hitable** triangles, int32_t triangleCount, Material* material) {
-    *(mesh + index) = new Mesh(triangles, triangleCount, material);
-}
-
-void createMesh(Hitable** triangle, int32_t index, Hitable** triangles, int32_t triangleCount, Material* material) {
-    createMeshKernel<<<1, 1>>>(triangle, index, triangles, triangleCount, material);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createCubeKernel(Hitable** cube, int32_t index, Float3 position, Hitable** faces, Material* material) {
-    *(cube + index) = new Cube(position, faces, material);
-}
-
-void createCube(Hitable** triangle, int32_t index, Float3 position, Hitable** faces, Material* material) {
-    createCubeKernel<<<1, 1>>>(triangle, index, position, faces, material);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
 #define RESOLUTION 1
 
 #if RESOLUTION == 0
@@ -373,12 +219,13 @@ Canvas* canvas = nullptr;
 Camera* camera = nullptr;
 Hitable** spheres = nullptr;
 Hitable** triangles = nullptr;
+Hitable** AABB = nullptr;
 int32_t triangleCount = 0;
-//std::vector<Material**> materials(MATERIALS);
 Material** materials = nullptr;
 curandState* randStates = nullptr;
 std::shared_ptr<ImageData> imageData = nullptr;
-
+cudaTextureObject_t triangleDataTexture;
+Float4* triangleData = nullptr;
 dim3 blockSize(32, 32);
 dim3 gridSize((width + blockSize.x - 1) / blockSize.x,
               (height + blockSize.y - 1) / blockSize.y);
@@ -395,7 +242,39 @@ void loadScene(const std::string& path) {
     }
 }
 
+cudaTextureObject_t createTriangleData(Float4* data, int32_t size) {
+    cudaTextureObject_t texture;
+    cudaResourceDesc textureResourceDesc;
+
+    memset(&textureResourceDesc, 0, sizeof(cudaResourceDesc));
+
+    auto desc = cudaCreateChannelDesc<Float4>();
+
+    textureResourceDesc.resType = cudaResourceTypeLinear;
+    textureResourceDesc.res.linear.devPtr = data;
+    textureResourceDesc.res.linear.desc = desc;
+    textureResourceDesc.res.linear.sizeInBytes = size;
+
+    cudaTextureDesc textureDesc;
+    memset(&textureDesc, 0, sizeof(cudaTextureDesc));
+
+    textureDesc.normalizedCoords = false;
+    textureDesc.filterMode = cudaFilterModeLinear;
+    textureDesc.addressMode[0] = cudaAddressModeClamp;
+    textureDesc.addressMode[1] = cudaAddressModeClamp;
+    textureDesc.readMode = cudaReadModeElementType;
+
+    gpuErrorCheck(cudaCreateTextureObject(&texture, &textureResourceDesc, &textureDesc, nullptr));
+
+    testKernel<<<1, 1>>>(texture);
+
+    gpuErrorCheck(cudaDeviceSynchronize());
+
+    return texture;
+}
+
 void initialize(int32_t width, int32_t height) {
+    gpuErrorCheck(cudaSetDevice(0));
     //Canvas canvas(width, height);
     Utils::reportGPUUsageInfo();
     canvas = createObjectPtr<Canvas>();
@@ -403,9 +282,9 @@ void initialize(int32_t width, int32_t height) {
 
     //Camera camera(make_float3(-2.0f, 2.0f, 1.0f), make_float3(0.0f, 0.0f, -1.0f), make_float3(0.0f, 1.0f, 0.0f), Float(width) / height, 20.0f);
     camera = createObjectPtr<Camera>();
+
     //camera->initialize(make_float3(-2.0f, 2.0f, 1.0f), make_float3(0.0f, 0.0f, -1.0f), make_float3(0.0f, 1.0f, 0.0f), Float(width) / height, 20.0f);
     //camera->initialize(make_float3(0.0f, 1.0f, 1.0f), make_float3(0.0f, 0.0f, -1.0f), make_float3(0.0f, 1.0f, 0.0f), Float(width) / height, 90.0f);
-
     //auto eye = make_float3(3.0f, 3.0f, 5.0f);
     //auto center = make_float3(0.0f, 0.0f, -1.0f);
     //auto up = make_float3(0.0f, 1.0f, 0.0f);
@@ -464,13 +343,12 @@ void initialize(int32_t width, int32_t height) {
 #elif SCENE == 1
     // If the distance between object and camera equals to focus lens
     // then the object is in focus
-    auto eye = point(0.0f, 0.0f, 10.0f);
+    auto eye = point(0.0f, 0.0f, 1.0f);
     auto center = point(0.0f, 0.0f, -1.0f);
     auto up = point(0.0f, 1.0f, 0.0f);
     auto focusDistance = length(center - eye);
     auto aperture = 0.0f;
-    camera->initialize(eye, center, up, Float(width) / height, 20.0f, aperture, focusDistance, 0.0f, 1.0f);
-
+    camera->initialize(eye, center, up, Float(width) / height, 60.0f, aperture, focusDistance, 0.0f, 1.0f);
     // Scene1 Defocus Blur
     //createDieletricMaterial(materials, 0, 1.5f);
     //createDieletricMaterial(materials, 1, 1.5f);
@@ -479,13 +357,16 @@ void initialize(int32_t width, int32_t height) {
     createLambertianMaterial(materials, 1, make_float3(0.0f, 1.0f, 0.0f));
     createLambertianMaterial(materials, 2, make_float3(0.0f, 0.0f, 1.0f));
     createLambertianMaterial(materials, 3, make_float3(1.0f, 1.0f, 1.0f));
-    createLambertianMaterial(materials, 4, make_float3(0.8f, 0.8f, 0.9f));
+    createLambertianMaterial(materials, 4, make_float3(0.75f, 0.25f, 0.25f));
+    createLambertianMaterial(materials, 5, make_float3(0.25f, 0.25f, 0.75f));
+    createMetalMaterial(materials, 6, make_float3(1.0f, 1.0f, 1.0f), 0.0f);
+    createDieletricMaterial(materials, 7, 1.5f);
+    createEmissionMaterial(materials, 8, make_float3(1.0f, 1.0f, 1.0f), 1.0f);
+    //createDieletricMaterial(materials, 1, 1.5f);
     //createDieletricMaterial<<<1, 1>>>(materials[3], 1.5f);
     //createMetalMaterial(materials, 3, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
     //createLambertianMaterial(materials, 4, make_float3(0.8f, 0.8f, 0.0f));
     //createMetalMaterial(materials, 4, make_float3(0.5f, 0.7f, 1.0f), 0.0f);
-
-    auto center1 = point(0.0f, 0.5f, 0.0f);
 
     //createSphere(spheres, 0, { -1.0f, 0.0f, -1.0f}, 0.5f, *(materials[0]));
     //createSphere(spheres, 1, { -1.0f, 0.0f, -1.0f }, -0.4f, *(materials[1]), false);
@@ -497,7 +378,7 @@ void initialize(int32_t width, int32_t height) {
     //auto model = loadModel("./resources/models/cube/cube.obj");
     //auto model = loadModel("./resources/models/plane/plane.obj");
     //auto model = loadModel("./resources/models/test/test.obj");
-    auto model = loadModel("./resources/models/suzanne/suzanne.obj");
+    auto model = loadModel("./resources/models/suzanne/suzanne_small.obj");
 
     std::vector<Float> positionX;
     std::vector<Float> positionY;
@@ -517,26 +398,40 @@ void initialize(int32_t width, int32_t height) {
     Float3 maxAABB = { positionX[positionX.size()- 1],  positionY[positionY.size() - 1], positionZ[positionZ.size() - 1] };
 
     Float3 extendAABB = (maxAABB - minAABB) * 0.5f;
-
     Float3 centerAABB = (minAABB + maxAABB) * 0.5f;
 
     triangleCount = model.size() / 3;
     triangles = createObjectPtrArray<Hitable*>(triangleCount);
 
-    //for (auto i = 0; i < triangleCount; i++) {
-    //    createTriangle(triangles, i, model[i * 3], model[i * 3 + 1], model[i * 3 + 2], materials[3]);
-    //}
+    triangleData = createObjectArray<Float4>(model.size());
 
-    //createMesh(spheres, 0, triangles, triangleCount, materials[0]);
+    for (auto i = 0; i < triangleCount; i++) {
+        auto v0 = model[i * 3];
+        auto v1 = model[i * 3 + 1];
+        auto v2 = model[i * 3 + 2];
+        createTriangle(triangles, i, v0, v1, v2, materials[3]);
+        triangleData[i * 3] = make_float4(v0.x, v0.y, v0.z, 0.0f);
+        triangleData[i * 3 + 1] = make_float4(v1.x, v1.y, v1.z, 0.0f);
+        triangleData[i * 3 + 2] = make_float4(v2.x, v2.y, v2.z, 0.0f);
+    }
 
-    createSphere(spheres, 0, { 0.0f, -102.0f, -1.0f }, 100.0f, materials[4]);
+    AABB = createObjectPtr<Hitable*>();
 
-    createPlane(spheres, 1, { centerAABB.x - extendAABB.x, centerAABB.y, centerAABB.z }, { -1.0f, 0.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::YZ);   // Left
-    createPlane(spheres, 2, { centerAABB.x + extendAABB.x, centerAABB.y, centerAABB.z }, {  1.0f, 0.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::YZ);   // Right
-    createPlane(spheres, 3, { centerAABB.x, centerAABB.y + extendAABB.y, centerAABB.z }, { 0.0f,  1.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::XZ);   // Top
-    createPlane(spheres, 4, { centerAABB.x, centerAABB.y - extendAABB.y, centerAABB.z }, { 0.0f, -1.0f, 0.0f }, extendAABB, materials[0], PlaneOrientation::XZ);   // Bottom
-    createPlane(spheres, 5, { centerAABB.x, centerAABB.y, centerAABB.z + extendAABB.z }, { 0.0f, 0.0f,  1.0f }, extendAABB, materials[0], PlaneOrientation::XY);   // Front
-    createPlane(spheres, 6, { centerAABB.x, centerAABB.y, centerAABB.z - extendAABB.z }, { 0.0f, 0.0f, -1.0f }, extendAABB, materials[0], PlaneOrientation::XY);   // Back
+    createCube(AABB, 0, centerAABB, extendAABB, materials[0]);
+
+    triangleDataTexture = createTriangleData(triangleData, sizeof(Float4) * model.size());
+
+    //createCube(spheres, 1, centerAABB, extendAABB, materials[0]);
+    createPlane(spheres, 0, {  0.0f,  0.5f,  0.0f }, {  0.0f,  1.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, materials[3], PlaneOrientation::XZ);
+    createPlane(spheres, 1, {  0.0f, -0.5f,  0.0f }, {  0.0f, -1.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, materials[3], PlaneOrientation::XZ);
+    createPlane(spheres, 2, { -0.5f,  0.0f,  0.0f }, { -1.0f,  0.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, materials[4], PlaneOrientation::YZ);
+    createPlane(spheres, 3, {  0.5f,  0.0f,  0.0f }, {  1.0f,  0.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, materials[5], PlaneOrientation::YZ);
+    createPlane(spheres, 4, {  0.0f,  0.0f, -0.5f }, {  0.0f,  0.0f, -1.0f }, { 0.5f, 0.5f, 0.5f }, materials[3], PlaneOrientation::XY);
+    createSphere(spheres, 5, { -0.225f, -0.325f, -0.25f }, 0.175f, materials[6]);
+    createSphere(spheres, 6, { 0.275f, -0.325f, -0.125f }, 0.175f, materials[7]);
+    createPlane(spheres, 7, { 0.0f,  0.49f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.125f, 0.125f, 0.125f }, materials[8], PlaneOrientation::XZ, false);
+    createMesh(spheres, 8, triangles, triangleCount, triangleDataTexture, minAABB, maxAABB, materials[3]);
+    //createSphere(spheres, 5, { 0.0f, -102.0f, -1.0f }, 100.0f, materials[4]);
 
 #elif SCENE == 2
     // If the distance between object and camera equals to focus lens
@@ -654,7 +549,7 @@ void initialize(int32_t width, int32_t height) {
                 auto normal = object["normal"].as<Float3>();
                 auto extend = object["extend"].as<Float3>();
 
-                createPlane(spheres, i, position, normal, extend, materials[materialId]);
+                createPlane(spheres, i, position, normal, extend, materials[materialId], PlaneOrientation::XZ);
             }
 
             break;
@@ -773,8 +668,6 @@ void initialize(int32_t width, int32_t height) {
     imageData->height = height;
     imageData->channels = 3;
     imageData->size = pixelCount * 3;
-
-    Utils::reportGPUUsageInfo();
 }   
 
 void clearBackBuffers() {
@@ -800,7 +693,7 @@ void pathTracing() {
     imageData->data = canvas->getPixelBuffer();
 #else
     auto* counter = createObjectPtr<int32_t>();
-
+    (*counter) = 0;
     canvas->incrementSampleCount();
     renderKernel<<<gridSize, blockSize>>>(canvas, camera, randStates, counter);
     gpuErrorCheck(cudaDeviceSynchronize());
@@ -812,12 +705,14 @@ void pathTracing() {
 void cleanup() {
     deleteObject(randStates);
 
-    deleteDeviceObjectArray<<<1, 1>>>(triangles, triangleCount);
     deleteDeviceObjectArray<<<1, 1>>>(spheres, OBJECTS);
     deleteDeviceObjectArray<<<1, 1>>>(materials, MATERIALS);
 
     gpuErrorCheck(cudaDeviceSynchronize());
 
+    gpuErrorCheck(cudaFree(triangleData));
+    gpuErrorCheck(cudaDestroyTextureObject(triangleDataTexture));
+    deleteObject(AABB);
     deleteObject(triangles);
     deleteObject(spheres);
     deleteObject(materials);
@@ -825,6 +720,10 @@ void cleanup() {
     deleteObject(camera);
     canvas->uninitialize();
     deleteObject(canvas);
+
+    cudaDeviceReset();
+
+    Utils::reportGPUUsageInfo();
 }
 
 #ifndef GPU_REALTIME

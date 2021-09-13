@@ -29,6 +29,7 @@
     <CudaCompile Include="Utils.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AABBox.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Canvas.h" />
@@ -50,6 +51,7 @@
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="imgui\stb_image.h" />
     <ClInclude Include="imgui\stb_image_write.h" />
+    <ClInclude Include="kernels.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="HitResult.h" />
@@ -165,6 +167,9 @@
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
+    <CudaLink>
+      <AdditionalOptions>--nvlink-options -suppress-stack-size-warning </AdditionalOptions>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='GPU-Realtime-Debug|x64'">
     <ClCompile>
@@ -187,6 +192,9 @@
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
+    <CudaLink>
+      <AdditionalOptions>--nvlink-options -suppress-stack-size-warning </AdditionalOptions>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -209,11 +217,17 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr --suppress-stack-size-warning %(AdditionalOptions)</AdditionalOptions>
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <FastMath>true</FastMath>
+      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
+    <CudaLink />
+    <CudaLink />
+    <CudaLink />
+    <CudaLink>
+      <AdditionalOptions>--nvlink-options -suppress-stack-size-warning </AdditionalOptions>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='GPU-Realtime|x64'">
     <ClCompile>
@@ -240,6 +254,9 @@
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
+    <CudaLink>
+      <AdditionalOptions>--nvlink-options -suppress-stack-size-warning </AdditionalOptions>
+    </CudaLink>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
