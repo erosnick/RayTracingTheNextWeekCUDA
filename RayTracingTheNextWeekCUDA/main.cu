@@ -8,7 +8,7 @@
 #include "Sphere.h"
 #include "Plane.h"
 #include "Triangle.h"
-#include "Mesh.h"
+#include "TriangleMesh.h"
 #include "Cube.h"
 #include "YAML.h"
 #include "ModelLoader.h"
@@ -20,11 +20,10 @@
 
 constexpr auto BOUNCES = 10;
 
-constexpr auto OBJECTS = 9;
+constexpr auto OBJECTS = 8;
 constexpr auto MATERIALS = 9;
 CUDA_CONSTANT Hitable* constantObjects[OBJECTS];
 CUDA_CONSTANT Material* constantMaterials[MATERIALS];
-CUDA_CONSTANT Float3 constantFloats[5000];
 
 CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) {
     HitResult tempHitResult;
@@ -57,7 +56,8 @@ CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState) {
             Ray scattered;
             // Bounces 4 Samples 100 18ms
             // Bounces 4 Samples 100 33ms(Empty scatter function body)
-            if (constantMaterials[hitResult.materialId]->scatter(currentRay, hitResult, attenuation, scattered, randState)) {
+            //if (constantMaterials[hitResult.materialId]->scatter(currentRay, hitResult, attenuation, scattered, randState)) {
+            if (hitResult.material->scatter(currentRay, hitResult, attenuation, scattered, randState)) {
                 currentAttenuation *= attenuation;
                 currentRay = scattered;
             }
@@ -223,8 +223,8 @@ int32_t triangleCount = 0;
 Material** materials = nullptr;
 curandState* randStates = nullptr;
 std::shared_ptr<ImageData> imageData = nullptr;
-cudaTextureObject_t triangleDataTexture;
-Float4* triangleData = nullptr;
+constexpr auto MESHES = 2;
+TriangleMeshData triangleMeshData[MESHES];
 dim3 blockSize(32, 32);
 dim3 gridSize((width + blockSize.x - 1) / blockSize.x,
               (height + blockSize.y - 1) / blockSize.y);
@@ -241,41 +241,107 @@ void loadScene(const std::string& path) {
     }
 }
 
-cudaTextureObject_t createTriangleData(Float4* data, int32_t size) {
+void computeAABB(const std::vector<Float3>& vertices, Float3& minAABB, Float3& maxAABB) {
+    std::vector<Float> positionX;
+    std::vector<Float> positionY;
+    std::vector<Float> positionZ;
+
+    for (const auto& vertex : vertices) {
+        positionX.push_back(vertex.x);
+        positionY.push_back(vertex.y);
+        positionZ.push_back(vertex.z);
+    }
+
+    std::sort(positionX.begin(), positionX.end());
+    std::sort(positionY.begin(), positionY.end());
+    std::sort(positionZ.begin(), positionZ.end());
+
+    minAABB = { positionX[0], positionY[0], positionZ[0] };
+    maxAABB = { positionX[positionX.size() - 1],  positionY[positionY.size() - 1], positionZ[positionZ.size() - 1] };
+
+    Float3 extendAABB = (maxAABB - minAABB) * 0.5f;
+    Float3 centerAABB = (minAABB + maxAABB) * 0.5f;
+}
+
+void prepareTriangleData(Float4* triangleData, const std::vector<Float3>& vertices) {
+    triangleCount = vertices.size() / 3;
+
+    //for (auto i = 0; i < triangleCount; i++) {
+    //    auto v0 = vertices[i * 3];
+    //    auto v1 = vertices[i * 3 + 1];
+    //    auto v2 = vertices[i * 3 + 2];
+    //    auto E1 = v1 - v0;
+    //    auto E2 = v2 - v0;
+    //    auto normal = normalize(cross(E1, E2));
+    //    triangleData[i * 3] = make_float4(v0.x, v0.y, v0.z, normal.x);
+    //    triangleData[i * 3 + 1] = make_float4(v1.x, v1.y, v1.z, normal.y);
+    //    triangleData[i * 3 + 2] = make_float4(v2.x, v2.y, v2.z, normal.z);
+    //}
+
+    // Precompute E1, E2, store per triangle data as v0, E1, E2
+    for (auto i = 0; i < triangleCount; i++) {
+        auto v0 = vertices[i * 3];
+        auto v1 = vertices[i * 3 + 1];
+        auto v2 = vertices[i * 3 + 2];
+        auto E1 = v1 - v0;
+        auto E2 = v2 - v0;
+        auto normal = normalize(cross(E1, E2));
+        triangleData[i * 3] = make_float4(v0.x, v0.y, v0.z, normal.x);
+        triangleData[i * 3 + 1] = make_float4(E1.x, E1.y, E1.z, normal.y);
+        triangleData[i * 3 + 2] = make_float4(E2.x, E2.y, E2.z, normal.z);
+    }
+}
+
+cudaTextureObject_t createTextureObject(Float4* data, int32_t size) {
     cudaTextureObject_t texture;
     cudaResourceDesc textureResourceDesc;
 
     memset(&textureResourceDesc, 0, sizeof(cudaResourceDesc));
-
+    
+    // Helper function to create cudaChannelFormatDesc
     auto desc = cudaCreateChannelDesc<Float4>();
 
+    // 1D texture array
     textureResourceDesc.resType = cudaResourceTypeLinear;
-    textureResourceDesc.res.linear.devPtr = data;
+    textureResourceDesc.res.linear.devPtr = data;           // Create by cudaMallocManaged
     textureResourceDesc.res.linear.desc = desc;
-    textureResourceDesc.res.linear.sizeInBytes = size;
+    textureResourceDesc.res.linear.sizeInBytes = size;      // Data size, should be aligned to cudaDeviceProp::textureAlignment
 
     cudaTextureDesc textureDesc;
     memset(&textureDesc, 0, sizeof(cudaTextureDesc));
 
+    // cudaAddressModeWrap and cudaAddressModeMirror are
+    // only supported for normalized texture coordinates
     textureDesc.normalizedCoords = false;
-    textureDesc.filterMode = cudaFilterModeLinear;
+    textureDesc.filterMode = cudaFilterModePoint;
     textureDesc.addressMode[0] = cudaAddressModeClamp;
     textureDesc.addressMode[1] = cudaAddressModeClamp;
     textureDesc.readMode = cudaReadModeElementType;
 
     gpuErrorCheck(cudaCreateTextureObject(&texture, &textureResourceDesc, &textureDesc, nullptr));
 
-    testKernel<<<1, 1>>>(texture);
-
-    gpuErrorCheck(cudaDeviceSynchronize());
-
     return texture;
+}
+
+void createTriangleMeshData(const std::vector<Float3>& vertices, TriangleMeshData& triangleMeshData) {
+    triangleMeshData.triangleCount = vertices.size() / 3;
+
+    computeAABB(vertices, triangleMeshData.boundsMin, triangleMeshData.boundsMax);
+    triangleMeshData.data = createObjectArray<Float4>(vertices.size());
+
+    prepareTriangleData(triangleMeshData.data, vertices);
+
+    // cudaDeviceProp::textureAlignment = 512
+    auto dataSize = sizeof(Float4) * vertices.size();
+    auto alignedElementCount = (dataSize + 512 - 1) / 512;
+    triangleMeshData.texture = createTextureObject(triangleMeshData.data, alignedElementCount * 512);
 }
 
 void initialize(int32_t width, int32_t height) {
     gpuErrorCheck(cudaSetDevice(0));
     //Canvas canvas(width, height);
     Utils::reportGPUUsageInfo();
+    Utils::queryDeviceProperties();
     canvas = createObjectPtr<Canvas>();
     canvas->initialize(width, height);
 
@@ -360,7 +426,7 @@ void initialize(int32_t width, int32_t height) {
     createLambertianMaterial(materials, 5, make_float3(0.25f, 0.25f, 0.75f));
     createMetalMaterial(materials, 6, make_float3(1.0f, 1.0f, 1.0f), 0.0f);
     createDieletricMaterial(materials, 7, 1.5f);
-    createEmissionMaterial(materials, 8, make_float3(1.0f, 1.0f, 1.0f), 1.0f);
+    createEmissionMaterial(materials, 8, make_float3(1.0f, 1.0f, 1.0f), 5.0f);
     //createDieletricMaterial(materials, 1, 1.5f);
     //createDieletricMaterial<<<1, 1>>>(materials[3], 1.5f);
     //createMetalMaterial(materials, 3, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
@@ -373,53 +439,22 @@ void initialize(int32_t width, int32_t height) {
     //createSphere(spheres, 3, {  1.0f, 0.0f, -1.0f },  0.5f, *(materials[3]));
     //createSphere(spheres, 4, {  0.0f, -100.5f, -1.0f }, 100.0f, *(materials[4]));
 
-    //auto model = loadModel("./resources/models/bunny/bunny.obj");
-    //auto model = loadModel("./resources/models/cube/cube.obj");
+    std::vector<MeshData> meshDatas;
+    //auto meshData = loadModel("./resources/models/bunny/bunny.obj");
+    auto meshData = loadModel("./resources/models/cube/cube_small.obj", make_float3(0.5f, 1.0f, 0.5f), make_float3(0.0f, 30.0f, 0.0f), make_float3(-0.25f, -0.25f, -0.25f));
+    meshDatas.push_back(meshData);
+    meshData = loadModel("./resources/models/cube/cube_small.obj", make_float3(0.5f, 0.5f, 0.5f), make_float3(0.0f, -30.0f, 0.0f), make_float3(0.25f, -0.375f, -0.25f));
+    meshDatas.push_back(meshData);
+    //auto meshData = loadModel("./resources/models/sphere/sphere.obj");
+    //auto meshData = loadModel("./resources/models/cube/cuboid.obj");
     //auto model = loadModel("./resources/models/plane/plane.obj");
     //auto model = loadModel("./resources/models/test/test.obj");
-    auto model = loadModel("./resources/models/suzanne/suzanne_small.obj");
+    //auto meshData = loadModel("./resources/models/suzanne/suzanne_small.obj");
 
-    std::vector<Float> positionX;
-    std::vector<Float> positionY;
-    std::vector<Float> positionZ;
-
-    for (const auto& vertex : model) {
-        positionX.push_back(vertex.x);
-        positionY.push_back(vertex.y);
-        positionZ.push_back(vertex.z);
+    for (auto i = 0; i < meshDatas.size(); i++) {
+        auto vertices = meshDatas[i].vertices;
+        createTriangleMeshData(vertices, triangleMeshData[i]);
     }
-
-    std::sort(positionX.begin(), positionX.end());
-    std::sort(positionY.begin(), positionY.end());
-    std::sort(positionZ.begin(), positionZ.end());
-
-    Float3 minAABB = { positionX[0], positionY[0], positionZ[0] };
-    Float3 maxAABB = { positionX[positionX.size()- 1],  positionY[positionY.size() - 1], positionZ[positionZ.size() - 1] };
-
-    Float3 extendAABB = (maxAABB - minAABB) * 0.5f;
-    Float3 centerAABB = (minAABB + maxAABB) * 0.5f;
-
-    triangleCount = model.size() / 3;
-
-    triangleData = createObjectArray<Float4>(model.size());
-
-    for (auto i = 0; i < triangleCount; i++) {
-        auto v0 = model[i * 3];
-        auto v1 = model[i * 3 + 1];
-        auto v2 = model[i * 3 + 2];
-        auto E1 = v1 - v0;
-        auto E2 = v2 - v0;
-        auto normal = normalize(cross(E1, E2));
-        triangleData[i * 3] = make_float4(v0.x, v0.y, v0.z, 0.0f);
-        triangleData[i * 3 + 1] = make_float4(v1.x, v1.y, v1.z, 0.0f);
-        triangleData[i * 3 + 2] = make_float4(v2.x, v2.y, v2.z, 0.0f);
-    }
-
-    AABB = createObjectPtr<Hitable*>();
-
-    createCube(AABB, 0, centerAABB, extendAABB, materials[0]);
-
-    triangleDataTexture = createTriangleData(triangleData, sizeof(Float4) * model.size());
 
     //createCube(spheres, 1, centerAABB, extendAABB, materials[0]);
     createPlane(spheres, 0, {  0.0f,  0.5f,  0.0f }, {  0.0f,  1.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, materials[3], PlaneOrientation::XZ);
@@ -427,10 +462,11 @@ void initialize(int32_t width, int32_t height) {
     createPlane(spheres, 2, { -0.5f,  0.0f,  0.0f }, { -1.0f,  0.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, materials[4], PlaneOrientation::YZ);
     createPlane(spheres, 3, {  0.5f,  0.0f,  0.0f }, {  1.0f,  0.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, materials[5], PlaneOrientation::YZ);
     createPlane(spheres, 4, {  0.0f,  0.0f, -0.5f }, {  0.0f,  0.0f, -1.0f }, { 0.5f, 0.5f, 0.5f }, materials[3], PlaneOrientation::XY);
-    createSphere(spheres, 5, { -0.225f, -0.325f, -0.25f }, 0.175f, materials[6]);
-    createSphere(spheres, 6, { 0.275f, -0.325f, -0.125f }, 0.175f, materials[7]);
-    createPlane(spheres, 7, { 0.0f,  0.49f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.125f, 0.125f, 0.125f }, materials[8], PlaneOrientation::XZ, false);
-    createMesh(spheres, 8, triangleCount, triangleDataTexture, minAABB, maxAABB, materials[3]);
+    createPlane(spheres, 5, { 0.0f,  0.49f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.125f, 0.125f, 0.125f }, materials[8], PlaneOrientation::XZ, false);
+    //createSphere(spheres, 6, { -0.225f, -0.325f, -0.25f }, 0.175f, materials[6]);
+    //createSphere(spheres, 7, { 0.275f, -0.325f, -0.125f }, 0.175f, materials[7]);
+    createMesh(spheres, 6, triangleMeshData[0].triangleCount, triangleMeshData[0].texture, triangleMeshData[0].boundsMin, triangleMeshData[0].boundsMax, materials[3]);
+    createMesh(spheres, 7, triangleMeshData[1].triangleCount, triangleMeshData[1].texture, triangleMeshData[1].boundsMin, triangleMeshData[1].boundsMax, materials[3]);
     //createSphere(spheres, 5, { 0.0f, -102.0f, -1.0f }, 100.0f, materials[4]);
 
 #elif SCENE == 2
@@ -710,8 +746,10 @@ void cleanup() {
 
     gpuErrorCheck(cudaDeviceSynchronize());
 
-    gpuErrorCheck(cudaFree(triangleData));
-    gpuErrorCheck(cudaDestroyTextureObject(triangleDataTexture));
+    for (auto i = 0; i < MESHES; i++) {
+        gpuErrorCheck(cudaDestroyTextureObject(triangleMeshData[i].texture));
+        gpuErrorCheck(cudaFree(triangleMeshData[i].data));
+    }
     deleteObject(AABB);
     deleteObject(spheres);
     deleteObject(materials);

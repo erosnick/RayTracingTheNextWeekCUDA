@@ -31,7 +31,7 @@ SPP 32
 
 ![avatar](/render_512x512_10bounces_32spp_AABB_texture_memory.png)
 512 x 512
-Bounces 15
+Bounces 10
 SPP 32
 4264.963 ms
 
@@ -40,3 +40,20 @@ SPP 32
 Bounces 15
 SPP 32
 5742.368 ms
+
+- 使用AABB优化射线-三角形相交
+- 使用texture memory代替global memory
+- 预计算E1, E2，存储格式为v0, E1, E2
+- 加入Backface cull
+
+![avatar](/render_512x512_10bounces_32spp_AABB_texture_memory.png)
+512 x 512
+Bounces 10
+SPP 32
+3857.460 ms
+
+![avatar](/render_512x512_15bounces_32spp_AABB_texture_memory.png)
+512 x 512
+Bounces 15
+SPP 32
+5196.331 ms

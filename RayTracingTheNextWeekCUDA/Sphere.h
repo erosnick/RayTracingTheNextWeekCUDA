@@ -28,6 +28,12 @@ public:
 
     CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const override;
 
+    CUDA_DEVICE inline bool boundingBox(Float time0, Float time1, AABBox& outputAABB) const override {
+        outputAABB = AABBox(center - make_float3(radius, radius, radius), 
+                            center + make_float3(radius, radius, radius));
+        return true;
+    }
+
     Float3 center;
     Float radius;
     Material* material;
@@ -54,6 +60,16 @@ public:
     CUDA_HOST_DEVICE Float3 center(Float time) const;
 
     CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const override;
+
+    CUDA_DEVICE inline bool boundingBox(Float time0, Float time1, AABBox& outputAABB) const override {
+        AABBox box0(center(time0) - make_float3(radius, radius, radius),
+                    center(time0) + make_float3(radius, radius, radius));
+
+        AABBox box1(center(time1) - make_float3(radius, radius, radius),
+                    center(time1) + make_float3(radius, radius, radius));
+
+        return true;
+    }
 
     Float3 center0;
     Float3 center1;

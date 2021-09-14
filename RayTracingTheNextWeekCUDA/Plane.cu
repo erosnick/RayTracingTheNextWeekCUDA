@@ -14,8 +14,8 @@ CUDA_DEVICE bool Plane::hit(const Ray& ray, Float tMin, Float tMax, HitResult& h
         hitResult.t = dot(po, normal) / denominator;
         auto hitPosition = ray.at(hitResult.t);
         hitResult.setFaceNormal(ray, normal);
-        //hitResult.material = material;
-        hitResult.materialId = material->id;
+        hitResult.material = material;
+        //hitResult.materialId = material->id;
         auto inRange = false;
 
         auto leftBoundary = position - extend;

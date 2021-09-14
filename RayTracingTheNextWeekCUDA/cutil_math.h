@@ -1477,4 +1477,28 @@ inline __device__ __host__ bool operator==(const float3& lhs, const float3& rhs)
     return ((lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z));
 }
 
+// helper functions
+inline __device__ float3 minf3(float3 a, float3 b) { return make_float3(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z); }
+inline __device__ float3 maxf3(float3 a, float3 b) { return make_float3(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z); }
+inline __device__ float minf1(float a, float b) { return a < b ? a : b; }
+inline __device__ float maxf1(float a, float b) { return a > b ? a : b; }
+
+inline __device__ float get(const float3& v, int index) {
+    switch (index)
+    {
+    case 0:
+        return v.x;
+        break;
+    case 1:
+        return v.y;
+        break;
+    case 2:
+        return v.z;
+        break;
+    default:
+        return v.x;
+        break;
+    }
+}
+
 #endif

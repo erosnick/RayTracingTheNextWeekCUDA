@@ -11,7 +11,8 @@ CUDA_DEVICE bool Triangle::hit(const Ray& ray, Float tMin, Float tMax, HitResult
     auto S = ray.origin - v0;
     auto S1 = cross(ray.direction, E2);
     auto S2 = cross(S, E1);
-    auto coefficient = 1.0f / dot(S1, E1);
+    //auto coefficient = 1.0f / dot(S1, E1);
+    auto coefficient = __fdividef(1.0f, dot(S1, E1));
     auto t = coefficient * dot(S2, E2);
     auto b1 = coefficient * dot(S1, S);
     auto b2 = coefficient * dot(S2, ray.direction);
@@ -30,7 +31,8 @@ CUDA_DEVICE bool Triangle::hit(const Ray& ray, Float tMin, Float tMax, HitResult
         && ((1.0f - b1 - b2) >= FLT_EPSILON)) {
         hitResult.t = t;
         hitResult.setFaceNormal(ray, normal);
-        hitResult.materialId = material->id;
+        hitResult.material = material;
+        //hitResult.materialId = material->id;
         return true;
     }
 

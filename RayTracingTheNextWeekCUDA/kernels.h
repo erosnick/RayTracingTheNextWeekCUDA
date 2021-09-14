@@ -7,7 +7,7 @@
 #include "Sphere.h"
 #include "Plane.h"
 #include "Triangle.h"
-#include "Mesh.h"
+#include "TriangleMesh.h"
 #include "Cube.h"
 
 template<typename T>
@@ -134,7 +134,7 @@ void createTriangle(Hitable** triangle, int32_t index, const Float3& v0, const F
 }
 
 CUDA_GLOBAL void createMeshKernel(Hitable** mesh, int32_t index, int32_t triangleCount, cudaTextureObject_t data, Float3 boundsMin, Float3 boundsMax, Material* material) {
-    *(mesh + index) = new Mesh(triangleCount, data, boundsMin, boundsMax, material);
+    *(mesh + index) = new TriangleMesh(triangleCount, data, boundsMin, boundsMax, material);
 }
 
 void createMesh(Hitable** triangle, int32_t index, int32_t triangleCount, cudaTextureObject_t data, Float3& boundsMin, const Float3& boundsMax, Material* material) {
@@ -161,8 +161,4 @@ void createCube(Hitable** cube, int32_t index, const Float3& center, const Float
     gpuErrorCheck(cudaDeviceSynchronize());
 
     gpuErrorCheck(cudaFree(faces));
-}
-
-CUDA_GLOBAL void testKernel(cudaTextureObject_t texture) {
-    auto value = tex1Dfetch<Float4>(texture, 0);
 }

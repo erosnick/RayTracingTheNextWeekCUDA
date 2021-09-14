@@ -1,0 +1,208 @@
+camera:
+  eye:
+    - 0.0
+    - 0.0
+    - 1.25
+  center:
+    -  0.0
+    -  0.0
+    - -1.0
+  up:
+    - 0.0
+    - 1.0
+    - 0.0
+  aperture: 0.0
+  fov: 60.0
+objects:
+  - sphere:       # Left
+      type: 0
+      center:
+        - -1000.5
+        -  0.0
+        -  0.0
+      radius: 1000
+      materialId: 1
+      material:
+         type: 0
+         albedo:
+           - 0.75
+           - 0.25
+           - 0.25
+  - sphere:         # Right
+      type: 0
+      center:
+        - 1000.5
+        - 0.0
+        - 0.0
+      radius: 1000
+      materialId: 0
+      material:
+         type: 0
+         albedo:
+           - 0.25
+           - 0.25
+           - 0.75
+  - sphere:       # Front
+      type: 0
+      center:
+        -  1.0
+        -  0.0
+        - -1000.5
+      radius: 1000
+      materialId: 2
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
+  - sphere:       # Top
+      type: 0
+      center:
+        - 0.0
+        - 1000.5
+        - 0.0
+      radius: 1000
+      materialId: 2
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
+  - sphere:       # Bottom
+      type: 0
+      center:
+        -  0.0
+        - -1000.5
+        -  0.0
+      radius: 1000
+      materialId: 2
+      material:
+         type: 0
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
+  # - sphere:       # Light
+  #     center:
+  #       - 0.0
+  #       - 50.49975
+  #       - 0.0
+  #     radius: 50
+  #     materialId: 9
+  #     type: 0
+  #     material:
+  #        type: 0
+  #        albedo:
+  #          - 1.0
+  #          - 1.0
+  #          - 1.0
+  # - sphere:       # Left sphere
+  #     center:
+  #       - -0.25
+  #       - -0.325
+  #       - -0.25
+  #     radius: 0.175
+  #     materialId: 2
+  #     type: 0
+  #     material:
+  #        type: 0
+  #        albedo:
+  #          - 1.0
+  #          - 1.0
+  #          - 1.0
+  # - sphere:       # Right sphere
+  #     center:
+  #       -  0.25
+  #       - -0.325
+  #       - -0.125
+  #     radius: 0.175
+  #     materialId: 2
+  #     type: 0
+  #     material:
+  #        type: 0
+  #        albedo:
+  #          - 1.0
+  #          - 1.0
+  #          - 1.0
+  - sphere:       # Left sphere
+      type: 0
+      center:
+        - -0.225
+        - -0.325
+        - -0.25
+      radius: 0.175
+      materialId: 3
+      material:
+         type: 1
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
+         fuzz: 0.0
+  - sphere:       # Right sphere
+      type: 0
+      center:
+        -  0.275
+        - -0.325
+        - -0.125
+      radius: 0.175
+      materialId: 4
+      material:
+         type: 2
+         indexOfRefraction: 1.5
+  # - sphere:       # Middle sphere
+  #     center:
+  #       -  0.0
+  #       - -0.325
+  #       -  0.125
+  #     radius: 0.175
+  #     materialId: 7
+  #     type: 0
+  #     material:
+  #        type: 7
+  #        indexOfRefraction: 1.5
+  - plane:
+      type: 1
+      position:
+        -  0.0
+        -  0.495
+        -  0.0
+      normal:
+        - 0.0
+        - 1.0
+        - 0.0 
+      extend:
+        - 0.15
+        - 0.15
+        - 0.15
+      materialId: 5
+      material:
+        type: 3
+        albedo:
+          - 1.0
+          - 1.0
+          - 1.0
+        intensity: 10.0
+  - triangle:
+      type: 2
+      v0:
+      -  0.0
+      - -0.25
+      - -0.125
+      v1:
+      - -0.25
+      - -0.25
+      -  0.125
+      v2:
+      -  0.25
+      - -0.25
+      -  0.125
+      materialId: 2
+      material:
+        type: 0
+        albedo:
+          - 1.0
+          - 1.0
+          - 1.0

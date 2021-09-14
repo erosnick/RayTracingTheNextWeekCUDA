@@ -42,7 +42,7 @@
     <CudaCompile Include="Material.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
-    <CudaCompile Include="Mesh.cu">
+    <CudaCompile Include="TriangleMesh.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
     <CudaCompile Include="Triangle.cu">
@@ -152,7 +152,7 @@
     <ClInclude Include="ModelLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
+    <ClInclude Include="TriangleMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Triangle.h">
@@ -165,6 +165,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AABBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BVHNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

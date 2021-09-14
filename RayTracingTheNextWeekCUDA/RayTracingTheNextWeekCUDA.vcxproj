@@ -23,7 +23,7 @@
     <CudaCompile Include="Cube.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="Material.cu" />
-    <CudaCompile Include="Mesh.cu" />
+    <CudaCompile Include="TriangleMesh.cu" />
     <CudaCompile Include="Processor.cu" />
     <CudaCompile Include="Triangle.cu" />
     <CudaCompile Include="Utils.cu" />
@@ -31,6 +31,7 @@
   <ItemGroup>
     <ClInclude Include="AABBox.h" />
     <ClInclude Include="Buffer.h" />
+    <ClInclude Include="BVHNode.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Canvas.h" />
     <ClInclude Include="Constants.h" />
@@ -55,7 +56,7 @@
     <ClInclude Include="main.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="HitResult.h" />
-    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="TriangleMesh.h" />
     <ClInclude Include="ModelLoader.h" />
     <ClInclude Include="Plane.h" />
     <ClInclude Include="Processor.h" />

@@ -22,7 +22,7 @@ public:
         fov = inFOV;
         aperture = inAperture;
         focusDistance = inFocusDistance;
-        movingSpeed = 3.0f;
+        movingSpeed = 1.5f;
         time0 = inTime0;
         time1 = inTime1;
 

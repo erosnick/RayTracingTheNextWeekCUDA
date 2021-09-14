@@ -3,6 +3,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tinyobjloader/tiny_obj_loader.h"
 
+#include "Constants.h"
+
 #include <iostream>
 
 #include <glm/glm.hpp>
@@ -413,21 +415,34 @@ std::shared_ptr<Model> loadModel(const std::string& fileName, const std::string&
     return model;
 }
 
-std::vector<Float3> loadModel(const std::string& fileName) {
+MeshData loadModel(const std::string& fileName, const Float3& scale, const Float3& rotate, const Float3& offset) {
     auto model = loadModel(fileName, "model");
 
     auto mesh = model->getMeshes()[0];
 
-    auto vertices = mesh->getVertices();
-    auto indices = mesh->getIndices();
+    std::vector<Float3> uniqueVertices;
 
-    std::vector<Float3> resultVertices;
-
-    for (auto index : indices) {
-        const auto& vertex = vertices[index];
-        Float3 resultVertex = { vertex.position.x, vertex.position.y, vertex.position.z };
-        resultVertices.push_back(resultVertex);
+    for (const auto& uniqueVertex : mesh->getVertices()) {
+        Float3 vertex = { uniqueVertex.position.x, uniqueVertex.position.y, uniqueVertex.position.z };
+        vertex *= scale;
+        vertex = rotateY(vertex, Math::radians(rotate.y));
+        vertex += offset;
+        uniqueVertices.push_back(vertex);
     }
 
-    return resultVertices;
+    auto indices = mesh->getIndices();
+
+    auto meshVertices = mesh->getVertices();
+
+    std::vector<Float3> vertices;
+    for (auto index : indices) {
+        const auto& vertex = meshVertices[index];
+        Float3 resultVertex = { vertex.position.x, vertex.position.y, vertex.position.z };
+        resultVertex *= scale;
+        resultVertex = rotateY(resultVertex, Math::radians(rotate.y));
+        resultVertex += offset;
+        vertices.push_back(resultVertex);
+    }
+
+    return { vertices, uniqueVertices, indices };
 }

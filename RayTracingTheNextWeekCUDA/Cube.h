@@ -16,6 +16,10 @@ public:
 
     CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const override;
 
+    CUDA_DEVICE bool boundingBox(Float time0, Float time1, AABBox& outputAABB) const override {
+        return true;
+    }
+
     Float3 center;
     Hitable* faces[6];
 

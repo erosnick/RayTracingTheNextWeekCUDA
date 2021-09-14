@@ -26,6 +26,10 @@ public:
 
     CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const override;
 
+    CUDA_DEVICE bool boundingBox(Float time0, Float time1, AABBox& outputAABB) const override {
+        return false;
+    }
+
     Float3 v0;
     Float3 v1;
     Float3 v2;

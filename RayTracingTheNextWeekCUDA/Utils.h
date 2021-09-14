@@ -159,6 +159,7 @@ namespace Utils {
         std::cout << "每个线程块的最大线程数：" << devicePro.maxThreadsPerBlock << std::endl;
         std::cout << "每个SM的最大线程数：" << devicePro.maxThreadsPerMultiProcessor << std::endl;
         std::cout << "每个SM的最大线程束数：" << devicePro.warpSize << std::endl;
+        std::cout << "纹理对齐尺寸: " << devicePro.textureAlignment << std::endl;
     }
 }
 
