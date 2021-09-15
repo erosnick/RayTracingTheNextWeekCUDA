@@ -14,118 +14,126 @@ camera:
   aperture: 0.0
   fov: 60.0
 objects:
-  - sphere:       # Left
-      type: 0
-      center:
-        - -1000.5
-        -  0.0
-        -  0.0
-      radius: 1000
-      materialId: 1
+  - plane:            # Top
+      type: 1
+      orientation: 2
+      position:       
+        - 0.0
+        - 0.5
+        - 0.0
+      normal:
+        - 0.0
+        - 1.0
+        - 0.0 
+      extend:
+        - 0.5
+        - 0.5
+        - 0.5
+      materialId: 3
+      twoSide: true
       material:
-         type: 0
-         albedo:
-           - 0.75
-           - 0.25
-           - 0.25
-  - sphere:         # Right
-      type: 0
-      center:
-        - 1000.5
+        type: 0
+        albedo:
+          - 1.0
+          - 1.0
+          - 1.0
+        intensity: 1.0
+  - plane:            # Bottom
+      type: 1
+      orientation: 2
+      position:       
+        -  0.0
+        - -0.5
+        -  0.0
+      normal:
+        -  0.0
+        - -1.0
+        -  0.0 
+      extend:
+        - 0.5
+        - 0.5
+        - 0.5
+      materialId: 3
+      twoSide: true
+      material:
+        type: 0
+        albedo:
+          - 1.0
+          - 1.0
+          - 1.0
+        intensity: 1.0
+  - plane:            # Left
+      type: 1
+      orientation: 1
+      position:       
+        - -0.5
+        -  0.0
+        -  0.0
+      normal:
+        - -1.0
+        -  0.0
+        -  0.0 
+      extend:
+        - 0.5
+        - 0.5
+        - 0.5
+      materialId: 4
+      twoSide: true
+      material:
+        type: 0
+        albedo:
+          - 0.75
+          - 0.25
+          - 0.25
+        intensity: 1.0
+  - plane:            # Right
+      type: 1
+      orientation: 1
+      position:       
+        - 0.5
         - 0.0
         - 0.0
-      radius: 1000
-      materialId: 0
-      material:
-         type: 0
-         albedo:
-           - 0.25
-           - 0.25
-           - 0.75
-  - sphere:       # Front
-      type: 0
-      center:
-        -  1.0
-        -  0.0
-        - -1000.5
-      radius: 1000
-      materialId: 2
-      material:
-         type: 0
-         albedo:
-           - 1.0
-           - 1.0
-           - 1.0
-  - sphere:       # Top
-      type: 0
-      center:
+      normal:
+        - 1.0
         - 0.0
-        - 1000.5
-        - 0.0
-      radius: 1000
-      materialId: 2
+        - 0.0 
+      extend:
+        - 0.5
+        - 0.5
+        - 0.5
+      materialId: 5
+      twoSide: true
       material:
-         type: 0
-         albedo:
-           - 1.0
-           - 1.0
-           - 1.0
-  - sphere:       # Bottom
-      type: 0
-      center:
+        type: 0
+        albedo:
+          - 0.25
+          - 0.25
+          - 0.75
+        intensity: 1.0
+  - plane:            # Back
+      type: 1
+      orientation: 0
+      position:       
         -  0.0
-        - -1000.5
         -  0.0
-      radius: 1000
-      materialId: 2
+        - -0.5
+      normal:
+        -  0.0
+        -  0.0
+        - -1.0 
+      extend:
+        - 0.5
+        - 0.5
+        - 0.5
+      materialId: 3
+      twoSide: true
       material:
-         type: 0
-         albedo:
-           - 1.0
-           - 1.0
-           - 1.0
-  # - sphere:       # Light
-  #     center:
-  #       - 0.0
-  #       - 50.49975
-  #       - 0.0
-  #     radius: 50
-  #     materialId: 9
-  #     type: 0
-  #     material:
-  #        type: 0
-  #        albedo:
-  #          - 1.0
-  #          - 1.0
-  #          - 1.0
-  # - sphere:       # Left sphere
-  #     center:
-  #       - -0.25
-  #       - -0.325
-  #       - -0.25
-  #     radius: 0.175
-  #     materialId: 2
-  #     type: 0
-  #     material:
-  #        type: 0
-  #        albedo:
-  #          - 1.0
-  #          - 1.0
-  #          - 1.0
-  # - sphere:       # Right sphere
-  #     center:
-  #       -  0.25
-  #       - -0.325
-  #       - -0.125
-  #     radius: 0.175
-  #     materialId: 2
-  #     type: 0
-  #     material:
-  #        type: 0
-  #        albedo:
-  #          - 1.0
-  #          - 1.0
-  #          - 1.0
+        type: 0
+        albedo:
+          - 1.0
+          - 1.0
+          - 1.0
+        intensity: 1.0
   - sphere:       # Left sphere
       type: 0
       center:
@@ -133,7 +141,7 @@ objects:
         - -0.325
         - -0.25
       radius: 0.175
-      materialId: 3
+      materialId: 6
       material:
          type: 1
          albedo:
@@ -148,23 +156,13 @@ objects:
         - -0.325
         - -0.125
       radius: 0.175
-      materialId: 4
+      materialId: 7
       material:
          type: 2
          indexOfRefraction: 1.5
-  # - sphere:       # Middle sphere
-  #     center:
-  #       -  0.0
-  #       - -0.325
-  #       -  0.125
-  #     radius: 0.175
-  #     materialId: 7
-  #     type: 0
-  #     material:
-  #        type: 7
-  #        indexOfRefraction: 1.5
   - plane:
       type: 1
+      orientation: 2
       position:
         -  0.0
         -  0.495
@@ -177,7 +175,8 @@ objects:
         - 0.15
         - 0.15
         - 0.15
-      materialId: 5
+      materialId: 8
+      twoSide: false
       material:
         type: 3
         albedo:
@@ -185,24 +184,3 @@ objects:
           - 1.0
           - 1.0
         intensity: 10.0
-  - triangle:
-      type: 2
-      v0:
-      -  0.0
-      - -0.25
-      - -0.125
-      v1:
-      - -0.25
-      - -0.25
-      -  0.125
-      v2:
-      -  0.25
-      - -0.25
-      -  0.125
-      materialId: 2
-      material:
-        type: 0
-        albedo:
-          - 1.0
-          - 1.0
-          - 1.0

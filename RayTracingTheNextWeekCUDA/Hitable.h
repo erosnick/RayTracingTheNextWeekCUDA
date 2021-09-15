@@ -7,7 +7,8 @@
 enum class PrimitiveType : uint8_t {
     Sphere,
     Plane,
-    Triangle
+    Triangle,
+    TriangleMesh
 };
 
 class Hitable {

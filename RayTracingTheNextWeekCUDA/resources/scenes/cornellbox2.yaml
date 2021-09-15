@@ -159,6 +159,32 @@ objects:
           - 1.0
           - 1.0
         intensity: 1.0
+  - sphere:       # Left sphere
+      type: 0
+      center:
+        - -0.25
+        -  0.15
+        - -0.25
+      radius: 0.15
+      materialId: 6
+      material:
+         type: 1
+         albedo:
+           - 1.0
+           - 1.0
+           - 1.0
+         fuzz: 0.0
+  - sphere:       # Right sphere
+      type: 0
+      center:
+        -  0.25
+        - -0.1
+        - -0.25
+      radius: 0.15
+      materialId: 7
+      material:
+         type: 2
+         indexOfRefraction: 1.5
   - mesh:
       type: 3
       model: cube/cube_small.obj

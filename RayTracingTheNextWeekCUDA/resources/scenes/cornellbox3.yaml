@@ -161,41 +161,19 @@ objects:
         intensity: 1.0
   - mesh:
       type: 3
-      model: cube/cube_small.obj
+      model: suzanne/suzanne_small.obj
       scale:
-        - 0.5
         - 1.0
-        - 0.5
-      rotate:
-        - 0.0
-        - 30.0
-        - 0.0
-      offset:
-        - -0.25
-        - -0.25
-        - -0.25
-      materialId: 3
-      material:
-        type: 0
-        albedo:
-          - 1.0
-          - 1.0
-          - 1.0
-  - mesh:
-      type: 3
-      model: cube/cube_small.obj
-      scale:
-        - 0.5
-        - 0.5
-        - 0.5
+        - 1.0
+        - 1.0
       rotate:
         -  0.0
-        - -30.0
+        -  0.0
         -  0.0
       offset:
-        -  0.25
-        - -0.375
-        - -0.25
+        -  0.0
+        -  0.0
+        -  0.0
       materialId: 3
       material:
         type: 0

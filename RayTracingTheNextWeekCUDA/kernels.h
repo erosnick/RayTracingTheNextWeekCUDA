@@ -133,12 +133,12 @@ void createTriangle(Hitable** triangle, int32_t index, const Float3& v0, const F
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createMeshKernel(Hitable** mesh, int32_t index, int32_t triangleCount, cudaTextureObject_t data, Float3 boundsMin, Float3 boundsMax, Material* material) {
-    *(mesh + index) = new TriangleMesh(triangleCount, data, boundsMin, boundsMax, material);
+CUDA_GLOBAL void createMeshKernel(Hitable** mesh, int32_t index, int32_t triangleCount, cudaTextureObject_t triangleData, cudaTextureObject_t AABBData, Float3 boundsMin, Float3 boundsMax, Material* material) {
+    *(mesh + index) = new TriangleMesh(triangleCount, triangleData, AABBData, boundsMin, boundsMax, material);
 }
 
-void createMesh(Hitable** triangle, int32_t index, int32_t triangleCount, cudaTextureObject_t data, Float3& boundsMin, const Float3& boundsMax, Material* material) {
-    createMeshKernel<<<1, 1>>>(triangle, index, triangleCount, data, boundsMin, boundsMax, material);
+void createMesh(Hitable** triangle, int32_t index, int32_t triangleCount, cudaTextureObject_t triangleData, cudaTextureObject_t AABBData, Float3& boundsMin, const Float3& boundsMax, Material* material) {
+    createMeshKernel<<<1, 1>>>(triangle, index, triangleCount, triangleData, AABBData, boundsMin, boundsMax, material);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 

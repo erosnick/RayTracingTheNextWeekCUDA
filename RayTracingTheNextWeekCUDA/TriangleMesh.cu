@@ -5,7 +5,7 @@
 CUDA_DEVICE TriangleMesh::~TriangleMesh() {
 }
 
-__device__ float rayTriangleIntersection(const Ray& ray,
+CUDA_DEVICE float rayTriangleIntersection(const Ray& ray,
     const float3& v0,
     const float3& edge1,
     const float3& edge2)
@@ -37,36 +37,35 @@ CUDA_DEVICE bool TriangleMesh::hit(const Ray& ray, Float tMin, Float tMax, HitRe
         return false;
     }
 
-    auto bHitAnything = false;
-    auto closestSoFar = tMax;
-    for (auto i = 0; i < triangleCount; i++) {
+    bool bHitAnything = false;
+    Float closestSoFar = tMax;
+    for (int i = 0; i < triangleCount; i++) {
         //// TODO: Implement this function that tests whether the triangle
         //// that's specified bt v0, v1 and v2 intersects with the ray (whose
         //// origin is *orig* and direction is *dir*)
         //// Also don't forget to update tnear, u and v.
-        auto element0 = tex1Dfetch<Float4>(triangleData, i * 3);
-        auto element1 = tex1Dfetch<Float4>(triangleData, i * 3 + 1);
-        auto element2 = tex1Dfetch<Float4>(triangleData, i * 3 + 2);
+        Float4 element0 = tex1Dfetch<Float4>(triangleData, i * 3);
+        Float4 element1 = tex1Dfetch<Float4>(triangleData, i * 3 + 1);
+        Float4 element2 = tex1Dfetch<Float4>(triangleData, i * 3 + 2);
 
         Float3 v0 = { element0.x, element0.y, element0.z };
         Float3 E1 = { element1.x, element1.y, element1.z };
         Float3 E2 = { element2.x, element2.y, element2.z };
 
-        auto normal = normalize(cross(E1, E2));
+        Float3 normal = normalize(cross(E1, E2));
 
         // Backface cull
         if (dot(ray.direction, normal) > FLT_EPSILON) {
             continue;
         }
 
-        auto S = ray.origin - v0;
-        auto S1 = cross(ray.direction, E2);
-        auto S2 = cross(S, E1);
-        //auto coefficient = 1.0f / dot(S1, E1);
-        auto coefficient = __fdividef(1.0f, dot(S1, E1));
-        auto t = coefficient * dot(S2, E2);
-        auto b1 = coefficient * dot(S1, S);
-        auto b2 = coefficient * dot(S2, ray.direction);
+        Float3 S = ray.origin - v0;
+        Float3 S1 = cross(ray.direction, E2);
+        Float3 S2 = cross(S, E1);
+        Float coefficient = 1.0f / dot(S1, E1);
+        Float t = coefficient * dot(S2, E2);
+        Float b1 = coefficient * dot(S1, S);
+        Float b2 = coefficient * dot(S2, ray.direction);
 
         // Constrains:
         // 1 ~ 4 must be satisfied at the same time

@@ -5,8 +5,8 @@
 
 class AABBox {
 public:
-    CUDA_DEVICE AABBox() {}
-    CUDA_DEVICE AABBox(const Float3& boundsMin, const Float3& boundsMax) {
+    CUDA_HOST_DEVICE AABBox() {}
+    CUDA_HOST_DEVICE AABBox(const Float3& boundsMin, const Float3& boundsMax) {
         bounds[0] = boundsMin;
         bounds[1] = boundsMax;
     }

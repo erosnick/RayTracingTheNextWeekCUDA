@@ -2,7 +2,7 @@ camera:
   eye:
     - 0.0
     - 0.0
-    - 1.0
+    - 1.25
   center:
     -  0.0
     -  0.0
@@ -13,7 +13,6 @@ camera:
     - 0.0
   aperture: 0.0
   fov: 60.0
-
 objects:
   - plane:            # Top
       type: 1
@@ -135,71 +134,27 @@ objects:
           - 1.0
           - 1.0
         intensity: 1.0
-  - plane:            # Light
+  - plane:
       type: 1
       orientation: 2
-      position:       
-        - 0.0
-        - 0.49
-        - 0.0
+      position:
+        -  0.0
+        -  0.495
+        -  0.0
       normal:
         - 0.0
         - 1.0
         - 0.0 
       extend:
-        - 0.125
-        - 0.125
-        - 0.125
+        - 0.15
+        - 0.15
+        - 0.15
       materialId: 8
       twoSide: false
       material:
-        type: 0
+        type: 3
         albedo:
           - 1.0
           - 1.0
           - 1.0
-        intensity: 1.0
-  - mesh:
-      type: 3
-      model: cube/cube_small.obj
-      scale:
-        - 0.5
-        - 1.0
-        - 0.5
-      rotate:
-        - 0.0
-        - 30.0
-        - 0.0
-      offset:
-        - -0.25
-        - -0.25
-        - -0.25
-      materialId: 3
-      material:
-        type: 0
-        albedo:
-          - 1.0
-          - 1.0
-          - 1.0
-  - mesh:
-      type: 3
-      model: cube/cube_small.obj
-      scale:
-        - 0.5
-        - 0.5
-        - 0.5
-      rotate:
-        -  0.0
-        - -30.0
-        -  0.0
-      offset:
-        -  0.25
-        - -0.375
-        - -0.25
-      materialId: 3
-      material:
-        type: 0
-        albedo:
-          - 1.0
-          - 1.0
-          - 1.0
+        intensity: 10.0
