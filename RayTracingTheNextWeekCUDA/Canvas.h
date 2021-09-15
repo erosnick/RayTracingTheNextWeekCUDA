@@ -66,11 +66,11 @@ public:
         (*pixelBuffer)[index * 3 + 2] = gamma(blue);
     }
 
-    CUDA_DEVICE inline void writePixel(int32_t index, const Float3& color) {
+    CUDA_DEVICE inline void writePixel(int32_t index, const Vector3Df& color) {
         writePixel(index, color.x, color.y, color.z);
     }
 
-    CUDA_DEVICE inline void accumulatePixel(int32_t index, const Float3& color) {
+    CUDA_DEVICE inline void accumulatePixel(int32_t index, const Vector3Df& color) {
         accumulatePixel(index, color.x, color.y, color.z);
     }
 
@@ -153,7 +153,7 @@ public:
         delete[] imageData;
     }
 
-    CUDA_HOST_DEVICE inline void clearPixel(int32_t index, const Float3& clearColor = make_float3(0.0f, 0.0f, 0.0f)) {
+    CUDA_HOST_DEVICE inline void clearPixel(int32_t index, const Vector3Df& clearColor = Vector3Df(0.0f, 0.0f, 0.0f)) {
         (*accumulationBuffer)[index * 3] = 0.0f;
         (*accumulationBuffer)[index * 3 + 1] = 0.0f;
         (*accumulationBuffer)[index * 3+ 2] = 0.0f;

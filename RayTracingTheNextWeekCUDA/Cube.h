@@ -5,7 +5,7 @@
 class Cube : public Hitable {
 public:
     CUDA_DEVICE Cube() {}
-    CUDA_DEVICE Cube(const Float3& inCenter, Hitable** inFaces, Material* inMaterial)
+    CUDA_DEVICE Cube(const Vector3Df& inCenter, Hitable** inFaces, Material* inMaterial)
     : center(inCenter), material(inMaterial) {
         for (auto i = 0; i < 6; i++) {
             faces[i] = inFaces[i];
@@ -20,7 +20,7 @@ public:
         return true;
     }
 
-    Float3 center;
+    Vector3Df center;
     Hitable* faces[6];
 
     Material* material;

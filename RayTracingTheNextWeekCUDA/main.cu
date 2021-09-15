@@ -41,18 +41,18 @@ CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResul
     return bHitAnything;
 }
 
-using ScatterFunction = bool (*)(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState);
+using ScatterFunction = bool (*)(const Ray& inRay, const HitResult& hitResult, Vector3Df& attenuation, Ray& scattered, curandState* randState);
 
 CUDA_DEVICE ScatterFunction scatterFunction;
 
-CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState) {
+CUDA_DEVICE Vector3Df rayColor(const Ray& ray, curandState* randState) {
     Ray currentRay = ray;
-    auto currentAttenuation = make_float3(1.0f, 1.0f, 1.0f);
+    auto currentAttenuation = Vector3Df(1.0f, 1.0f, 1.0f);
     for (auto i = 0; i < BOUNCES; i++) {
         HitResult hitResult;
         // Smaller tMin will has a impact on performance
         if (hit(currentRay, Math::epsilon, Math::infinity, hitResult)) {
-            Float3 attenuation;
+            Vector3Df attenuation;
             Ray scattered;
             // Bounces 4 Samples 100 18ms
             // Bounces 4 Samples 100 33ms(Empty scatter function body)
@@ -70,15 +70,15 @@ CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState) {
         else {
             auto unitDirection = normalize(currentRay.direction);
             auto t = 0.5f * (unitDirection.y + 1.0f);
-            auto background = lerp(make_float3(1.0f, 1.0f, 1.0f), make_float3(0.5f, 0.7f, 1.0f), t);
+            auto background = lerp(Vector3Df(1.0f, 1.0f, 1.0f), Vector3Df(0.5f, 0.7f, 1.0f), t);
             return currentAttenuation * background;
         }
     }
     // exceeded recursion
-    return make_float3(0.0f, 0.0f, 0.0f);
+    return Vector3Df(0.0f, 0.0f, 0.0f);
 }
 
-//CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState, Sphere* spheres, int32_t depth) {
+//CUDA_DEVICE Vector3Df rayColor(const Ray& ray, curandState* randState, Sphere* spheres, int32_t depth) {
 //    if (depth == 0) {
 //        // exceeded recursion
 //        return make_float3(0.0f, 0.0f, 0.0f);
@@ -86,7 +86,7 @@ CUDA_DEVICE Float3 rayColor(const Ray& ray, curandState* randState) {
 //    HitResult hitResult;
 //    // Smaller tMin will has a impact on performance
 //    if (hit(ray, Math::epsilon, Math::infinity, hitResult, spheres)) {
-//        Float3 attenuation;
+//        Vector3Df attenuation;
 //        Ray rayScattered;
 //        if (hitResult.material->scatter(ray, hitResult, attenuation, rayScattered, randState)) {
 //            return attenuation * rayColor(rayScattered, randState, spheres, depth - 1);
@@ -157,7 +157,7 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
     auto index = y * width + x;
 
     if (index < (width * height)) {
-        auto color = make_float3(0.0f, 0.0f, 0.0f);
+        auto color = Vector3Df(0.0f, 0.0f, 0.0f);
         auto localRandState = randStates[index];
         for (auto i = 0; i < samplesPerPixel; i++) {
 
@@ -241,7 +241,7 @@ void loadScene(const std::string& path) {
     }
 }
 
-void computeMeshAABB(const std::vector<Float3>& vertices, Float3& minAABB, Float3& maxAABB) {
+void computeMeshAABB(const std::vector<Vector3Df>& vertices, Vector3Df& minAABB, Vector3Df& maxAABB) {
     std::vector<Float> positionX;
     std::vector<Float> positionY;
     std::vector<Float> positionZ;
@@ -259,11 +259,11 @@ void computeMeshAABB(const std::vector<Float3>& vertices, Float3& minAABB, Float
     minAABB = { positionX[0], positionY[0], positionZ[0] };
     maxAABB = { positionX[positionX.size() - 1],  positionY[positionY.size() - 1], positionZ[positionZ.size() - 1] };
 
-    Float3 extendAABB = (maxAABB - minAABB) * 0.5f;
-    Float3 centerAABB = (minAABB + maxAABB) * 0.5f;
+    Vector3Df extendAABB = (maxAABB - minAABB) * 0.5f;
+    Vector3Df centerAABB = (minAABB + maxAABB) * 0.5f;
 }
 
-//std::vector<AABBox> computeTriangleAABBs(const std::vector<Float3>& vertices) {
+//std::vector<AABBox> computeTriangleAABBs(const std::vector<Vector3Df>& vertices) {
 //    std::vector<AABBox> AABBs;
 //
 //    for (auto i = 0; i < vertices.size() / 3; i++) {
@@ -280,25 +280,25 @@ void computeMeshAABB(const std::vector<Float3>& vertices, Float3& minAABB, Float
 //    return AABBs;
 //}
 
-std::vector<Float4> computeTriangleAABBs(const std::vector<Float3>& vertices) {
-    std::vector<Float4> AABBs;
+std::vector<Vector3Df> computeTriangleAABBs(const std::vector<Vector3Df>& vertices) {
+    std::vector<Vector3Df> AABBs;
 
     for (auto i = 0; i < vertices.size() / 3; i++) {
         auto v0 = vertices[i * 3];
         auto v1 = vertices[i * 3 + 1];
         auto v2 = vertices[i * 3 + 2];
 
-        auto min = minf3(minf3(v0, v1), v2);
-        auto max = maxf3(maxf3(v0, v1), v2);
+        auto min = min3(min3(v0, v1), v2);
+        auto max = max3(max3(v0, v1), v2);
 
-        AABBs.push_back(make_float4(min.x, min.y, min.z, 0.0f));
-        AABBs.push_back(make_float4(max.x, max.y, max.z, 0.0f));
+        AABBs.push_back(Vector3Df(min.x, min.y, min.z));
+        AABBs.push_back(Vector3Df(max.x, max.y, max.z));
     }
 
     return AABBs;
 }
 
-void prepareTriangleData(const std::vector<Float3>& vertices, Float4* triangleData, Float4* aabbData) {
+void prepareTriangleData(const std::vector<Vector3Df>& vertices, Float4* triangleData, Float4* aabbData) {
     triangleCount = vertices.size() / 3;
 
     //for (auto i = 0; i < triangleCount; i++) {
@@ -325,8 +325,8 @@ void prepareTriangleData(const std::vector<Float3>& vertices, Float4* triangleDa
         triangleData[i * 3 + 1] = make_float4(E1.x, E1.y, E1.z, normal.y);
         triangleData[i * 3 + 2] = make_float4(E2.x, E2.y, E2.z, normal.z);
 
-        auto min = minf3(minf3(v0, v1), v2);
-        auto max = maxf3(maxf3(v0, v1), v2);
+        auto min = min3(min3(v0, v1), v2);
+        auto max = max3(max3(v0, v1), v2);
         aabbData[i * 2] = make_float4(min.x, min.y, min.z, 0.0f);
         aabbData[i * 2 + 1] = make_float4(max.x, max.y, max.z, 0.0f);
     }
@@ -363,7 +363,7 @@ cudaTextureObject_t createTextureObject(Float4* data, int32_t size) {
     return texture;
 }
 
-void createTriangleMeshData(const std::vector<Float3>& vertices, TriangleMeshData& triangleMeshData) {
+void createTriangleMeshData(const std::vector<Vector3Df>& vertices, TriangleMeshData& triangleMeshData) {
     triangleMeshData.triangleCount = vertices.size() / 3;
 
     computeMeshAABB(vertices, triangleMeshData.boundsMin, triangleMeshData.boundsMax);
@@ -459,10 +459,10 @@ void initialize(int32_t width, int32_t height) {
     //YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox2.yaml");
     YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox3.yaml");
 
-    auto eye = scene["camera"]["eye"].as<Float3>();
-    auto center = scene["camera"]["center"].as<Float3>();
-    auto up = scene["camera"]["up"].as<Float3>();
-    auto focusDistance = length(center - eye);
+    auto eye = scene["camera"]["eye"].as<Vector3Df>();
+    auto center = scene["camera"]["center"].as<Vector3Df>();
+    auto up = scene["camera"]["up"].as<Vector3Df>();
+    auto focusDistance = (center - eye).length();
     auto aperture = scene["camera"]["aperture"].as<Float>();
     auto fov = scene["camera"]["fov"].as<Float>();
     camera->initialize(eye, center, up, Float(width) / height, fov, aperture, focusDistance, 0.0f, 1.0f);
@@ -470,15 +470,15 @@ void initialize(int32_t width, int32_t height) {
     //createDieletricMaterial(materials, 0, 1.5f);
     //createDieletricMaterial(materials, 1, 1.5f);
     //createLambertianMaterial(materials, 2, make_float3(0.1f, 0.2f, 0.5f));
-    createLambertianMaterial(materials, 0, make_float3(1.0f, 0.0f, 0.0f));
-    createLambertianMaterial(materials, 1, make_float3(0.0f, 1.0f, 0.0f));
-    createLambertianMaterial(materials, 2, make_float3(0.0f, 0.0f, 1.0f));
-    createLambertianMaterial(materials, 3, make_float3(1.0f, 1.0f, 1.0f));
-    createLambertianMaterial(materials, 4, make_float3(0.75f, 0.25f, 0.25f));
-    createLambertianMaterial(materials, 5, make_float3(0.25f, 0.25f, 0.75f));
-    createMetalMaterial(materials, 6, make_float3(1.0f, 1.0f, 1.0f), 0.0f);
+    createLambertianMaterial(materials, 0, Vector3Df(1.0f, 0.0f, 0.0f));
+    createLambertianMaterial(materials, 1, Vector3Df(0.0f, 1.0f, 0.0f));
+    createLambertianMaterial(materials, 2, Vector3Df(0.0f, 0.0f, 1.0f));
+    createLambertianMaterial(materials, 3, Vector3Df(1.0f, 1.0f, 1.0f));
+    createLambertianMaterial(materials, 4, Vector3Df(0.75f, 0.25f, 0.25f));
+    createLambertianMaterial(materials, 5, Vector3Df(0.25f, 0.25f, 0.75f));
+    createMetalMaterial(materials, 6, Vector3Df(1.0f, 1.0f, 1.0f), 0.0f);
     createDieletricMaterial(materials, 7, 1.5f);
-    createEmissionMaterial(materials, 8, make_float3(1.0f, 1.0f, 1.0f), 5.0f);
+    createEmissionMaterial(materials, 8, Vector3Df(1.0f, 1.0f, 1.0f), 5.0f);
     //createDieletricMaterial(materials, 1, 1.5f);
     //createDieletricMaterial<<<1, 1>>>(materials[3], 1.5f);
     //createMetalMaterial(materials, 3, make_float3(0.8f, 0.6f, 0.2f), 0.0f);
@@ -492,10 +492,8 @@ void initialize(int32_t width, int32_t height) {
     //createSphere(spheres, 4, {  0.0f, -100.5f, -1.0f }, 100.0f, *(materials[4]));
 
     //auto meshData = loadModel("./resources/models/bunny/bunny.obj");
-    auto meshData = loadModel("./resources/models/cube/cube_small.obj", make_float3(0.5f, 1.0f, 0.5f), make_float3(0.0f, 30.0f, 0.0f), make_float3(-0.25f, -0.25f, -0.25f));
+    auto meshData = loadModel("./resources/models/cube/cube_small.obj", Vector3Df(0.5f, 1.0f, 0.5f), Vector3Df(0.0f, 30.0f, 0.0f), Vector3Df(-0.25f, -0.25f, -0.25f));
     auto vertices = meshData.vertices;
-
-    auto AABBs = computeTriangleAABBs(vertices);
 
     //meshData = loadModel("./resources/models/cube/cube_small.obj", make_float3(0.5f, 0.5f, 0.5f), make_float3(0.0f, -30.0f, 0.0f), make_float3(0.25f, -0.375f, -0.25f));
     //meshDatas.push_back(meshData);
@@ -540,7 +538,7 @@ void initialize(int32_t width, int32_t height) {
 
         switch (materialType) {
             case MaterialType::Lambertian: {
-                auto albedo = object["material"]["albedo"].as<Float3>();
+                auto albedo = object["material"]["albedo"].as<Vector3Df>();
 
                 if ((materials[materialId]) == nullptr) {
                     createLambertianMaterial(materials, materialId, albedo);
@@ -558,7 +556,7 @@ void initialize(int32_t width, int32_t height) {
 
             break;
             case MaterialType::Metal: {
-                auto albedo = object["material"]["albedo"].as<Float3>();
+                auto albedo = object["material"]["albedo"].as<Vector3Df>();
                 auto fuzz = object["material"]["fuzz"].as<Float>();
 
                 if ((materials[materialId]) == nullptr) {
@@ -568,7 +566,7 @@ void initialize(int32_t width, int32_t height) {
 
             break;
             case MaterialType::Emission: {
-                auto albedo = object["material"]["albedo"].as<Float3>();
+                auto albedo = object["material"]["albedo"].as<Vector3Df>();
                 auto intensity = object["material"]["intensity"].as<Float>();
 
                 if ((materials[materialId]) == nullptr) {
@@ -581,7 +579,7 @@ void initialize(int32_t width, int32_t height) {
 
         switch (primitiveType) {
             case PrimitiveType::Sphere: {
-                auto center = object["center"].as<Float3>();
+                auto center = object["center"].as<Vector3Df>();
                 auto radius = object["radius"].as<Float>();
 
                 createSphere(spheres, i, center, radius, materials[materialId]);
@@ -589,9 +587,9 @@ void initialize(int32_t width, int32_t height) {
 
             break;
             case PrimitiveType::Plane: {
-                auto position = object["position"].as<Float3>();
-                auto normal = object["normal"].as<Float3>();
-                auto extend = object["extend"].as<Float3>();
+                auto position = object["position"].as<Vector3Df>();
+                auto normal = object["normal"].as<Vector3Df>();
+                auto extend = object["extend"].as<Vector3Df>();
                 auto twoSide = object["twoSide"].as<bool>();
                 auto orientation = static_cast<PlaneOrientation>(object["orientation"].as<uint8_t>());
                 createPlane(spheres, i, position, normal, extend, materials[materialId], orientation, twoSide);
@@ -599,9 +597,9 @@ void initialize(int32_t width, int32_t height) {
 
             break;
             case PrimitiveType::Triangle: {
-                auto v0 = object["v0"].as<Float3>();
-                auto v1 = object["v1"].as<Float3>();
-                auto v2 = object["v2"].as<Float3>();
+                auto v0 = object["v0"].as<Vector3Df>();
+                auto v1 = object["v1"].as<Vector3Df>();
+                auto v2 = object["v2"].as<Vector3Df>();
 
                 createTriangle(spheres, i, v0, v1, v2, materials[materialId]);
             }
@@ -609,9 +607,9 @@ void initialize(int32_t width, int32_t height) {
             break;
             case PrimitiveType::TriangleMesh: {
                 auto path = "./resources/models/" + object["model"].as<std::string>();
-                auto scale = object["scale"].as<Float3>();
-                auto rotate = object["rotate"].as<Float3>();
-                auto offset = object["offset"].as<Float3>();
+                auto scale = object["scale"].as<Vector3Df>();
+                auto rotate = object["rotate"].as<Vector3Df>();
+                auto offset = object["offset"].as<Vector3Df>();
                 auto meshData = loadModel(path, scale, rotate, offset);
                 auto vertices = meshData.vertices;
                 if (!vertices.empty()) {

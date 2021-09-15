@@ -415,15 +415,15 @@ std::shared_ptr<Model> loadModel(const std::string& fileName, const std::string&
     return model;
 }
 
-MeshData loadModel(const std::string& fileName, const Float3& scale, const Float3& rotate, const Float3& offset) {
+MeshData loadModel(const std::string& fileName, const Vector3Df& scale, const Vector3Df& rotate, const Vector3Df& offset) {
     auto model = loadModel(fileName, "model");
 
     auto mesh = model->getMeshes()[0];
 
-    std::vector<Float3> uniqueVertices;
+    std::vector<Vector3Df> uniqueVertices;
 
     for (const auto& uniqueVertex : mesh->getVertices()) {
-        Float3 vertex = { uniqueVertex.position.x, uniqueVertex.position.y, uniqueVertex.position.z };
+        Vector3Df vertex = { uniqueVertex.position.x, uniqueVertex.position.y, uniqueVertex.position.z };
         vertex *= scale;
         vertex = rotateY(vertex, Math::radians(rotate.y));
         vertex += offset;
@@ -434,10 +434,10 @@ MeshData loadModel(const std::string& fileName, const Float3& scale, const Float
 
     auto meshVertices = mesh->getVertices();
 
-    std::vector<Float3> vertices;
+    std::vector<Vector3Df> vertices;
     for (auto index : indices) {
         const auto& vertex = meshVertices[index];
-        Float3 resultVertex = { vertex.position.x, vertex.position.y, vertex.position.z };
+        Vector3Df resultVertex = { vertex.position.x, vertex.position.y, vertex.position.z };
         resultVertex *= scale;
         resultVertex = rotateY(resultVertex, Math::radians(rotate.y));
         resultVertex += offset;

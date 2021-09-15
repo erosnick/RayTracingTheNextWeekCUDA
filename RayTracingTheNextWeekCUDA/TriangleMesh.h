@@ -5,8 +5,8 @@
 
 struct TriangleMeshData {
     int32_t triangleCount;
-    Float3 boundsMin;
-    Float3 boundsMax;
+    Vector3Df boundsMin;
+    Vector3Df boundsMax;
     Float4* vertices;
     Float4* AABBs;
     cudaTextureObject_t triangleData;
@@ -16,7 +16,7 @@ struct TriangleMeshData {
 class TriangleMesh : public Hitable {
 public:
     CUDA_DEVICE TriangleMesh() {}
-    CUDA_DEVICE TriangleMesh(int32_t inTriangleCount, cudaTextureObject_t inTriangleData, cudaTextureObject_t inAABBData, const Float3& boundsMin, const Float3& boundsMax, Material* inMaterial)
+    CUDA_DEVICE TriangleMesh(int32_t inTriangleCount, cudaTextureObject_t inTriangleData, cudaTextureObject_t inAABBData, const Vector3Df& boundsMin, const Vector3Df& boundsMax, Material* inMaterial)
     : triangleCount(inTriangleCount), triangleData(inTriangleData), AABBData(inAABBData), AABB({ boundsMin, boundsMax }), material(inMaterial) {
     }
 

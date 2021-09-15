@@ -8,8 +8,8 @@
 
 namespace YAML {
     template<>
-    struct convert<Float3> {
-        static Node encode(const Float3& rhs) {
+    struct convert<Vector3Df> {
+        static Node encode(const Vector3Df& rhs) {
             Node node;
             node.push_back(rhs.x);
             node.push_back(rhs.y);
@@ -17,7 +17,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node& node, Float3& rhs) {
+        static bool decode(const Node& node, Vector3Df& rhs) {
             if (!node.IsSequence() || node.size() != 3) {
                 return false;
             }
@@ -74,7 +74,7 @@ namespace YAML {
             //}
             printf("%d\n", node.size());
 
-            rhs.albedo = node["albedo"].as<Float3>();
+            rhs.albedo = node["albedo"].as<Vector3Df>();
             rhs.type = static_cast<MaterialType>(node["type"].as<uint8_t>());
 
             return true;

@@ -10,7 +10,7 @@ CUDA_DEVICE bool Plane::hit(const Ray& ray, Float tMin, Float tMax, HitResult& h
     auto shouldProcced = bTwoSide ? (abs(denominator) > Math::epsilon) : (denominator > Math::epsilon);
 
     if (shouldProcced) {
-        Float3 po = position - ray.origin;
+        Vector3Df po = position - ray.origin;
         hitResult.t = dot(po, normal) / denominator;
         auto hitPosition = ray.at(hitResult.t);
         hitResult.setFaceNormal(ray, normal);

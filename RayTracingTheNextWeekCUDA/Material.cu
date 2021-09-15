@@ -1,6 +1,6 @@
 #include "Material.h"
 
-CUDA_DEVICE bool Lambertian::scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const {
+CUDA_DEVICE bool Lambertian::scatter(const Ray& inRay, const HitResult& hitResult, Vector3Df& attenuation, Ray& scattered, curandState* randState) const {
     //auto scatterDirection = Utils::randomUnitVector(randState);                                         // Diffuse1
     auto scatterDirection = hitResult.normal + Utils::randomUnitVector(randState);                      // Diffuse2
     //auto scatterDirection = Utils::randomHemiSphere(hitResult.normal, randState);                       // Diffuse3

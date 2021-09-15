@@ -48,29 +48,29 @@ CUDA_GLOBAL void deleteDeviceObjectArray(T** object, int32_t count) {
     }
 }
 
-CUDA_GLOBAL void createLambertianMaterialKernel(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
+CUDA_GLOBAL void createLambertianMaterialKernel(Material** material, int32_t index, Vector3Df albedo, Float absorb = 1.0f) {
     *(material + index) = new Lambertian(index, albedo, absorb);
 }
 
-void createLambertianMaterial(Material** material, int32_t index, Float3 albedo, Float absorb = 1.0f) {
+void createLambertianMaterial(Material** material, int32_t index, Vector3Df albedo, Float absorb = 1.0f) {
     createLambertianMaterialKernel<<<1, 1>>>(material, index, albedo, absorb);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createEmissionMaterialKernel(Material** material, int32_t index, Float3 albedo, Float intensity = 1.0f) {
+CUDA_GLOBAL void createEmissionMaterialKernel(Material** material, int32_t index, Vector3Df albedo, Float intensity = 1.0f) {
     *(material + index) = new Emission(index, albedo, intensity);
 }
 
-void createEmissionMaterial(Material** material, int32_t index, Float3 albedo, Float intensity = 1.0f) {
+void createEmissionMaterial(Material** material, int32_t index, Vector3Df albedo, Float intensity = 1.0f) {
     createEmissionMaterialKernel<<<1, 1>>>(material, index, albedo, intensity);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createMetalMaterialKernel(Material** material, int32_t index, Float3 albedo, Float fuzz = 1.0f) {
+CUDA_GLOBAL void createMetalMaterialKernel(Material** material, int32_t index, Vector3Df albedo, Float fuzz = 1.0f) {
     *(material + index) = new Metal(index, albedo, fuzz);
 }
 
-void createMetalMaterial(Material** material, int32_t index, Float3 albedo, Float fuzz = 1.0f) {
+void createMetalMaterial(Material** material, int32_t index, Vector3Df albedo, Float fuzz = 1.0f) {
     createMetalMaterialKernel<<<1, 1>>>(material, index, albedo, fuzz);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
@@ -97,56 +97,56 @@ CUDA_GLOBAL void clearBackBuffers(Canvas* canvas) {
     }
 }
 
-CUDA_GLOBAL void createSphereKernel(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading) {
+CUDA_GLOBAL void createSphereKernel(Hitable** sphere, int32_t index, Vector3Df center, Float radius, Material* material, bool bShading) {
     *(sphere + index) = new Sphere(center, radius, material, bShading);
 }
 
-void createSphere(Hitable** sphere, int32_t index, Float3 center, Float radius, Material* material, bool bShading = true) {
+void createSphere(Hitable** sphere, int32_t index, Vector3Df center, Float radius, Material* material, bool bShading = true) {
     createSphereKernel<<<1, 1>>>(sphere, index, center, radius, material, bShading);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createMovingSphereKernel(Hitable** sphere, int32_t index, Float3 center0, Float3 center1, Float time0, Float time1, Float radius, Material* material) {
+CUDA_GLOBAL void createMovingSphereKernel(Hitable** sphere, int32_t index, Vector3Df center0, Vector3Df center1, Float time0, Float time1, Float radius, Material* material) {
     *(sphere + index) = new MovingSphere(center0, center1, time0, time1, radius, material);
 }
 
-void createMovingSphere(Hitable** sphere, int32_t index, Float3 center0, Float3 center1, Float time0, Float time1, Float radius, Material* material) {
+void createMovingSphere(Hitable** sphere, int32_t index, Vector3Df center0, Vector3Df center1, Float time0, Float time1, Float radius, Material* material) {
     createMovingSphereKernel<<<1, 1>>>(sphere, index, center0, center1, time0, time1, radius, material);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createPlaneKernel(Hitable** plane, int32_t index, Float3 position, Float3 normal, Float3 extend, Material* material, PlaneOrientation orientation, bool bTwoSide) {
+CUDA_GLOBAL void createPlaneKernel(Hitable** plane, int32_t index, Vector3Df position, Vector3Df normal, Vector3Df extend, Material* material, PlaneOrientation orientation, bool bTwoSide) {
     *(plane + index) = new Plane(position, normal, extend, material, orientation, bTwoSide);
 }
 
-void createPlane(Hitable** plane, int32_t index, const Float3& position, const Float3& normal, const Float3& extend, Material* material, PlaneOrientation orientation, bool bTwoSide = true) {
+void createPlane(Hitable** plane, int32_t index, const Vector3Df& position, const Vector3Df& normal, const Vector3Df& extend, Material* material, PlaneOrientation orientation, bool bTwoSide = true) {
     createPlaneKernel<<<1, 1>>>(plane, index, position, normal, extend, material, orientation, bTwoSide);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createTriangleKernel(Hitable** triangle, int32_t index, Float3 v0, Float3 v1, Float3 v2, Material* material) {
+CUDA_GLOBAL void createTriangleKernel(Hitable** triangle, int32_t index, Vector3Df v0, Vector3Df v1, Vector3Df v2, Material* material) {
     *(triangle + index) = new Triangle(v0, v1, v2, material);
 }
 
-void createTriangle(Hitable** triangle, int32_t index, const Float3& v0, const Float3& v1, const Float3& v2, Material* material) {
+void createTriangle(Hitable** triangle, int32_t index, const Vector3Df& v0, const Vector3Df& v1, const Vector3Df& v2, Material* material) {
     createTriangleKernel<<<1, 1>>>(triangle, index, v0, v1, v2, material);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createMeshKernel(Hitable** mesh, int32_t index, int32_t triangleCount, cudaTextureObject_t triangleData, cudaTextureObject_t AABBData, Float3 boundsMin, Float3 boundsMax, Material* material) {
+CUDA_GLOBAL void createMeshKernel(Hitable** mesh, int32_t index, int32_t triangleCount, cudaTextureObject_t triangleData, cudaTextureObject_t AABBData, Vector3Df boundsMin, Vector3Df boundsMax, Material* material) {
     *(mesh + index) = new TriangleMesh(triangleCount, triangleData, AABBData, boundsMin, boundsMax, material);
 }
 
-void createMesh(Hitable** triangle, int32_t index, int32_t triangleCount, cudaTextureObject_t triangleData, cudaTextureObject_t AABBData, Float3& boundsMin, const Float3& boundsMax, Material* material) {
+void createMesh(Hitable** triangle, int32_t index, int32_t triangleCount, cudaTextureObject_t triangleData, cudaTextureObject_t AABBData, Vector3Df& boundsMin, const Vector3Df& boundsMax, Material* material) {
     createMeshKernel<<<1, 1>>>(triangle, index, triangleCount, triangleData, AABBData, boundsMin, boundsMax, material);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 
-CUDA_GLOBAL void createCubeKernel(Hitable** cube, int32_t index, Float3 position, Hitable** faces, Material* material) {
+CUDA_GLOBAL void createCubeKernel(Hitable** cube, int32_t index, Vector3Df position, Hitable** faces, Material* material) {
     *(cube + index) = new Cube(position, faces, material);
 }
 
-void createCube(Hitable** cube, int32_t index, const Float3& center, const Float3& extend, Material* material) {
+void createCube(Hitable** cube, int32_t index, const Vector3Df& center, const Vector3Df& extend, Material* material) {
     auto** faces = createObjectPtrArray<Hitable*>(6);
 
     createPlane(faces, 0, { center.x - extend.x,  center.y,  center.z }, { -1.0f,  0.0f,  0.0f }, extend, material, PlaneOrientation::YZ);   // Left

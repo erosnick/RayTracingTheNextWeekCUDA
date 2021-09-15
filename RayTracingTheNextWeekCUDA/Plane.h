@@ -11,7 +11,7 @@ enum class PlaneOrientation : uint8_t {
 class Plane : public Hitable {
 public:
     CUDA_HOST_DEVICE Plane() {}
-    CUDA_HOST_DEVICE Plane(const Float3& inPosition, const Float3& inNormal, const Float3& inExtend, Material* inMaterial, PlaneOrientation inOrientation = PlaneOrientation::XZ, bool bInTwoSide = true)
+    CUDA_HOST_DEVICE Plane(const Vector3Df& inPosition, const Vector3Df& inNormal, const Vector3Df& inExtend, Material* inMaterial, PlaneOrientation inOrientation = PlaneOrientation::XZ, bool bInTwoSide = true)
     : position(inPosition), normal(inNormal), extend(inExtend), material(inMaterial), orientation(inOrientation), bTwoSide(bInTwoSide) {
     }
 
@@ -21,9 +21,9 @@ public:
         return false;
     }
 
-    Float3 position;
-    Float3 normal;
-    Float3 extend;
+    Vector3Df position;
+    Vector3Df normal;
+    Vector3Df extend;
     PrimitiveType type = PrimitiveType::Plane;
     PlaneOrientation orientation;
     Material* material;

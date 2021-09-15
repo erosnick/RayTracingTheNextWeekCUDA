@@ -6,13 +6,13 @@ CUDA_DEVICE TriangleMesh::~TriangleMesh() {
 }
 
 CUDA_DEVICE float rayTriangleIntersection(const Ray& ray,
-    const float3& v0,
-    const float3& edge1,
-    const float3& edge2)
+    const Vector3Df& v0,
+    const Vector3Df& edge1,
+    const Vector3Df& edge2)
 {
 
-    float3 tvec = ray.origin - v0;
-    float3 pvec = cross(ray.direction, edge2);
+    Vector3Df tvec = ray.origin - v0;
+    Vector3Df pvec = cross(ray.direction, edge2);
     float  det = dot(edge1, pvec);
 
     det = __fdividef(1.0f, det);  // CUDA intrinsic function 
@@ -22,7 +22,7 @@ CUDA_DEVICE float rayTriangleIntersection(const Ray& ray,
     if (u < 0.0f || u > 1.0f)
         return -1.0f;
 
-    float3 qvec = cross(tvec, edge1);
+    Vector3Df qvec = cross(tvec, edge1);
 
     float v = dot(ray.direction, qvec) * det;
 
@@ -48,20 +48,20 @@ CUDA_DEVICE bool TriangleMesh::hit(const Ray& ray, Float tMin, Float tMax, HitRe
         Float4 element1 = tex1Dfetch<Float4>(triangleData, i * 3 + 1);
         Float4 element2 = tex1Dfetch<Float4>(triangleData, i * 3 + 2);
 
-        Float3 v0 = { element0.x, element0.y, element0.z };
-        Float3 E1 = { element1.x, element1.y, element1.z };
-        Float3 E2 = { element2.x, element2.y, element2.z };
+        Vector3Df v0 = { element0.x, element0.y, element0.z };
+        Vector3Df E1 = { element1.x, element1.y, element1.z };
+        Vector3Df E2 = { element2.x, element2.y, element2.z };
 
-        Float3 normal = normalize(cross(E1, E2));
+        Vector3Df normal = normalize(cross(E1, E2));
 
         // Backface cull
         if (dot(ray.direction, normal) > FLT_EPSILON) {
             continue;
         }
 
-        Float3 S = ray.origin - v0;
-        Float3 S1 = cross(ray.direction, E2);
-        Float3 S2 = cross(S, E1);
+        Vector3Df S = ray.origin - v0;
+        Vector3Df S1 = cross(ray.direction, E2);
+        Vector3Df S2 = cross(S, E1);
         Float coefficient = 1.0f / dot(S1, E1);
         Float t = coefficient * dot(S2, E2);
         Float b1 = coefficient * dot(S1, S);

@@ -5,11 +5,11 @@
 class Triangle : public Hitable {
 public:
     CUDA_DEVICE Triangle() {}
-    CUDA_DEVICE Triangle(const Float3& inV0, const Float3& inV1, const Float3& inV2, Material* inMaterial) {
+    CUDA_DEVICE Triangle(const Vector3Df& inV0, const Vector3Df& inV1, const Vector3Df& inV2, Material* inMaterial) {
         initialize(inV0, inV1, inV2, inMaterial);
     }
 
-    CUDA_DEVICE void initialize(const Float3& inV0, const Float3& inV1, const Float3& inV2, Material* inMaterial) {
+    CUDA_DEVICE void initialize(const Vector3Df& inV0, const Vector3Df& inV1, const Vector3Df& inV2, Material* inMaterial) {
         v0 = inV0;
         v1 = inV1;
         v2 = inV2;
@@ -30,14 +30,14 @@ public:
         return false;
     }
 
-    Float3 v0;
-    Float3 v1;
-    Float3 v2;
+    Vector3Df v0;
+    Vector3Df v1;
+    Vector3Df v2;
 
-    Float3 E1;
-    Float3 E2;
+    Vector3Df E1;
+    Vector3Df E2;
 
-    Float3 normal;
+    Vector3Df normal;
 
     Material* material;
 

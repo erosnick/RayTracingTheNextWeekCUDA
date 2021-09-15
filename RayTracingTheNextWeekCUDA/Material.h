@@ -16,7 +16,7 @@ class Material {
 public:
     CUDA_DEVICE Material() {}
     CUDA_DEVICE virtual ~Material() {}
-    CUDA_DEVICE virtual bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const = 0;
+    CUDA_DEVICE virtual bool scatter(const Ray& inRay, const HitResult& hitResult, Vector3Df& attenuation, Ray& scattered, curandState* randState) const = 0;
     uint32_t id;
     MaterialType type;
 };
@@ -24,25 +24,25 @@ public:
 class Lambertian : public Material {
 public:
     CUDA_DEVICE Lambertian() {}
-    CUDA_DEVICE Lambertian(uint32_t inId, const Float3& inAlbedo, Float inAbsorb)
+    CUDA_DEVICE Lambertian(uint32_t inId, const Vector3Df& inAlbedo, Float inAbsorb)
         : albedo(inAlbedo), absorb(inAbsorb) {
         id = inId;
         type = MaterialType::Lambertian;
     }
 
-    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override;
-    Float3 albedo;
+    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Vector3Df& attenuation, Ray& scattered, curandState* randState) const override;
+    Vector3Df albedo;
     Float absorb;
 };
 
 class Metal : public Material {
 public:
-    CUDA_DEVICE Metal(uint32_t inId, const Float3& inAlbedo, Float inFuzz = 1.0f)
+    CUDA_DEVICE Metal(uint32_t inId, const Vector3Df& inAlbedo, Float inFuzz = 1.0f)
     : albedo(inAlbedo), fuzz(inFuzz < 1.0f ? inFuzz : 1.0f) {
         id = inId;
     }
 
-    CUDA_DEVICE inline bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
+    CUDA_DEVICE inline bool scatter(const Ray& inRay, const HitResult& hitResult, Vector3Df& attenuation, Ray& scattered, curandState* randState) const override {
         auto reflected = Utils::reflect(normalize(inRay.direction), hitResult.normal);
         scattered = Ray(inRay.at(hitResult.t), reflected + fuzz * Utils::randomInUnitSphere(randState), inRay.time);
         auto bScatter = (dot(scattered.direction, hitResult.normal) > 0);
@@ -50,7 +50,7 @@ public:
         return bScatter;
     }
 
-    Float3 albedo;
+    Vector3Df albedo;
     Float fuzz;
     MaterialType type = MaterialType::Metal;
 };
@@ -62,8 +62,8 @@ public:
         id = inId;
     }
 
-    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
-        attenuation = make_float3(1.0f, 1.0f, 1.0f);
+    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Vector3Df& attenuation, Ray& scattered, curandState* randState) const override {
+        attenuation = Vector3Df(1.0f, 1.0f, 1.0f);
         auto refractionRatio = hitResult.bFrontFace ? (1.0f / indexOfRefraction) : indexOfRefraction;
 
         auto unitDirection = normalize(inRay.direction);
@@ -71,7 +71,7 @@ public:
         auto sinTheta = sqrt(1.0f - cosTheta * cosTheta);
 
         bool bCannotRefract = refractionRatio * sinTheta > 1.0f;
-        Float3 direction;
+        Vector3Df direction;
 
         // Consider Total Internal Reflection
         // One troublesome practical issue is that when the ray is in 
@@ -111,17 +111,17 @@ private:
 
 class Emission : public Material {
 public:
-    CUDA_DEVICE Emission(uint32_t inId, const Float3& inAlbedo, Float inIntensity = 1.0f)
+    CUDA_DEVICE Emission(uint32_t inId, const Vector3Df& inAlbedo, Float inIntensity = 1.0f)
     : albedo(inAlbedo), intensity(inIntensity) {
         id = inId;
         type = MaterialType::Emission;
     }
 
-    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Float3& attenuation, Ray& scattered, curandState* randState) const override {
+    CUDA_DEVICE bool scatter(const Ray& inRay, const HitResult& hitResult, Vector3Df& attenuation, Ray& scattered, curandState* randState) const override {
         attenuation = albedo * intensity;
         return false;
     }
 
-    Float3 albedo;
+    Vector3Df albedo;
     Float intensity;
 };

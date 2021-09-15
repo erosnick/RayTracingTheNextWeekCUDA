@@ -8,11 +8,11 @@
 class Sphere : public Hitable {
 public:
     CUDA_HOST_DEVICE Sphere() {}
-    CUDA_HOST_DEVICE Sphere(const Float3& inCenter, float inRadius, Material* inMaterial, bool bInShading = true) {
+    CUDA_HOST_DEVICE Sphere(const Vector3Df& inCenter, float inRadius, Material* inMaterial, bool bInShading = true) {
         initialize(inCenter, inRadius, inMaterial, bInShading);
     }
 
-    CUDA_HOST_DEVICE void initialize(const Float3& inCenter, float inRadius, Material* inMaterial, bool bInShading = true) {
+    CUDA_HOST_DEVICE void initialize(const Vector3Df& inCenter, float inRadius, Material* inMaterial, bool bInShading = true) {
         center = inCenter;
         radius = inRadius;
         material = inMaterial;
@@ -29,12 +29,12 @@ public:
     CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const override;
 
     CUDA_DEVICE inline bool boundingBox(Float time0, Float time1, AABBox& outputAABB) const override {
-        outputAABB = AABBox(center - make_float3(radius, radius, radius), 
-                            center + make_float3(radius, radius, radius));
+        outputAABB = AABBox(center - Vector3Df(radius, radius, radius),
+                            center + Vector3Df(radius, radius, radius));
         return true;
     }
 
-    Float3 center;
+    Vector3Df center;
     Float radius;
     Material* material;
     bool bShading;
@@ -44,11 +44,11 @@ public:
 class MovingSphere : public Hitable {
 public:
     CUDA_DEVICE MovingSphere() {};
-    CUDA_DEVICE MovingSphere(const Float3& inCenter0, const Float3& inCenter1, Float inTime0, Float inTime1, Float inRadius, Material* inMaterial) {
+    CUDA_DEVICE MovingSphere(const Vector3Df& inCenter0, const Vector3Df& inCenter1, Float inTime0, Float inTime1, Float inRadius, Material* inMaterial) {
         initialize(inCenter0, inCenter1, inTime0, inTime1, inRadius, inMaterial);
     }
 
-    CUDA_DEVICE void initialize(const Float3& inCenter0, const Float3& inCenter1, Float inTime0, Float inTime1, Float inRadius, Material* inMaterial) {
+    CUDA_DEVICE void initialize(const Vector3Df& inCenter0, const Vector3Df& inCenter1, Float inTime0, Float inTime1, Float inRadius, Material* inMaterial) {
         center0 = inCenter0;
         center1 = inCenter1;
         time0 = inTime0;
@@ -57,22 +57,22 @@ public:
         material = inMaterial;
     }
 
-    CUDA_HOST_DEVICE Float3 center(Float time) const;
+    CUDA_HOST_DEVICE Vector3Df center(Float time) const;
 
     CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) const override;
 
     CUDA_DEVICE inline bool boundingBox(Float time0, Float time1, AABBox& outputAABB) const override {
-        AABBox box0(center(time0) - make_float3(radius, radius, radius),
-                    center(time0) + make_float3(radius, radius, radius));
+        AABBox box0(center(time0) - Vector3Df(radius, radius, radius),
+                    center(time0) + Vector3Df(radius, radius, radius));
 
-        AABBox box1(center(time1) - make_float3(radius, radius, radius),
-                    center(time1) + make_float3(radius, radius, radius));
+        AABBox box1(center(time1) - Vector3Df(radius, radius, radius),
+                    center(time1) + Vector3Df(radius, radius, radius));
 
         return true;
     }
 
-    Float3 center0;
-    Float3 center1;
+    Vector3Df center0;
+    Vector3Df center1;
     Float time0;
     Float time1;
     Float radius;

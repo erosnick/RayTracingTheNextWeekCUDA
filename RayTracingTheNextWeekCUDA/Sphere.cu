@@ -72,7 +72,7 @@ CUDA_DEVICE bool MovingSphere::hit(const Ray& ray, Float tMin, Float tMax, HitRe
     return true;
 }
 
-CUDA_DEVICE Float3 MovingSphere::center(Float time) const {
+CUDA_DEVICE Vector3Df MovingSphere::center(Float time) const {
     auto newCenter = center0 + ((time - time0) / (time1 - time0)) * (center1 - center0);
     return newCenter;
 }

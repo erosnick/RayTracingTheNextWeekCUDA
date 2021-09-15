@@ -6,7 +6,7 @@
 class AABBox {
 public:
     CUDA_HOST_DEVICE AABBox() {}
-    CUDA_HOST_DEVICE AABBox(const Float3& boundsMin, const Float3& boundsMax) {
+    CUDA_HOST_DEVICE AABBox(const Vector3Df& boundsMin, const Vector3Df& boundsMax) {
         bounds[0] = boundsMin;
         bounds[1] = boundsMax;
     }
@@ -110,15 +110,15 @@ public:
         //return true;
     }
 
-    Float3 bounds[2];
+    Vector3Df bounds[2];
 };
 
 CUDA_DEVICE inline AABBox surroundingBox(const AABBox& box0, const AABBox& box1) {
-    auto small = make_float3(fmin(box0.bounds[0].x, box1.bounds[0].x),
+    auto small = Vector3Df(fmin(box0.bounds[0].x, box1.bounds[0].x),
                              fmin(box0.bounds[0].y, box1.bounds[0].y),
                              fmin(box0.bounds[0].z, box1.bounds[0].z));
 
-    auto big = make_float3(fmax(box0.bounds[1].x, box1.bounds[1].x),
+    auto big = Vector3Df(fmax(box0.bounds[1].x, box1.bounds[1].x),
                            fmax(box0.bounds[1].y, box1.bounds[1].y),
                            fmax(box0.bounds[1].z, box1.bounds[1].z));
 

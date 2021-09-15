@@ -8,12 +8,12 @@
 
 class Camera {
 public:
-    CUDA_HOST_DEVICE Camera(const Float3& inEye, const Float3& inCenter, const Float3& inUp, Float inAspectRatio, Float inFOV = 90.0f, 
+    CUDA_HOST_DEVICE Camera(const Vector3Df& inEye, const Vector3Df& inCenter, const Vector3Df& inUp, Float inAspectRatio, Float inFOV = 90.0f, 
                             Float inAperture = 2.0f, Float inFocusDistance = 1.0f, Float inTime0 = 0.0f, Float inTime1 = 0.0f) {
         initialize(inEye, inCenter, inUp, inAspectRatio, inFOV, inAperture, inFocusDistance, inTime0, inTime1);
     }
 
-    CUDA_HOST_DEVICE void initialize(const Float3& inEye, const Float3& inCenter, const Float3& inUp, Float inAspectRatio, Float inFOV = 90.0f, 
+    CUDA_HOST_DEVICE void initialize(const Vector3Df& inEye, const Vector3Df& inCenter, const Vector3Df& inUp, Float inAspectRatio, Float inFOV = 90.0f, 
                                      Float inAperture = 2.0f, Float inFocusDistance = 1.0f, Float inTime0 = 0.0f, Float inTime1 = 0.0f) {
         eye = inEye;
         center = inCenter;
@@ -72,7 +72,7 @@ public:
         bIsDirty = true;
     }
 
-    CUDA_HOST_DEVICE inline void orbit(const Float3& target) {
+    CUDA_HOST_DEVICE inline void orbit(const Vector3Df& target) {
         auto x = eye.x;
         auto z = eye.z;
         eye.x = (x - target.x) * cos(0.01f) - (z - target.z) * sin(0.01f) + target.x;
@@ -160,7 +160,8 @@ public:
 
         auto newOrigin = origin + offset;
         auto direction = lowerLeftCorner + dx * horizontal + dy * vertical - newOrigin;
-        return Ray(origin + offset, normalize(direction), Utils::random(randState, time0, time1));
+        direction.normalize();
+        return Ray(origin + offset, direction, Utils::random(randState, time0, time1));
     }
 private:
     Float aspectRatio;
@@ -177,16 +178,16 @@ private:
     Float time0;
     Float time1;
 
-    Float3 eye;
-    Float3 center;
-    Float3 forward;
-    Float3 right;
-    Float3 up;
-    Float3 trueUp;
-    Float3 horizontal;
-    Float3 vertical;
-    Float3 origin;
-    Float3 lowerLeftCorner;
+    Vector3Df eye;
+    Vector3Df center;
+    Vector3Df forward;
+    Vector3Df right;
+    Vector3Df up;
+    Vector3Df trueUp;
+    Vector3Df horizontal;
+    Vector3Df vertical;
+    Vector3Df origin;
+    Vector3Df lowerLeftCorner;
 
     bool bIsDirty;
 };

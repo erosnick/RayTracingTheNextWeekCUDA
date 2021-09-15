@@ -2,11 +2,12 @@
 
 #include "CUDATypes.h"
 #include <cstdint>
+#include "LinearAlgebra.h"
 
 class Ray {
 public:
     CUDA_HOST_DEVICE inline Ray() {}
-    CUDA_HOST_DEVICE inline Ray(const Float3& inOrigin, const Float3& inDirection, Float inTime = 0.0f)
+    CUDA_HOST_DEVICE inline Ray(const Vector3Df& inOrigin, const Vector3Df& inDirection, Float inTime = 0.0f)
         : origin(inOrigin), direction(inDirection), time(inTime) {
         inverseDirection = 1.0f / direction;
         signs[0] = (inverseDirection.x < 0.0f);
@@ -14,13 +15,13 @@ public:
         signs[2] = (inverseDirection.z < 0.0f);
     }
 
-    CUDA_HOST_DEVICE inline Float3 at(Float t) const {
+    CUDA_HOST_DEVICE inline Vector3Df at(Float t) const {
         return origin + t * direction;
     }
 
-    Float3 origin;
-    Float3 direction;
-    Float3 inverseDirection;
+    Vector3Df origin;
+    Vector3Df direction;
+    Vector3Df inverseDirection;
     int32_t signs[3];
     Float time;
 };

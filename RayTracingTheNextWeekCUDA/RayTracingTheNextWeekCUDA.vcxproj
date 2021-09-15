@@ -53,6 +53,7 @@
     <ClInclude Include="imgui\stb_image.h" />
     <ClInclude Include="imgui\stb_image_write.h" />
     <ClInclude Include="kernels.h" />
+    <ClInclude Include="LinearAlgebra.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="HitResult.h" />
