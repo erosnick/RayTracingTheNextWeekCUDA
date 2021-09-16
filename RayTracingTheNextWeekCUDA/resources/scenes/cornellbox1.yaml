@@ -160,7 +160,7 @@ objects:
           - 1.0
         intensity: 1.0
   - mesh:
-      type: 3
+      type: 2
       model: cube/cube_small.obj
       scale:
         - 0.5
@@ -182,7 +182,7 @@ objects:
           - 1.0
           - 1.0
   - mesh:
-      type: 3
+      type: 2
       model: cube/cube_small.obj
       scale:
         - 0.5

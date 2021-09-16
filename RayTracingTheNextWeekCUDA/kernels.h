@@ -6,7 +6,6 @@
 #include "Hitable.h"
 #include "Sphere.h"
 #include "Plane.h"
-#include "Triangle.h"
 #include "TriangleMesh.h"
 #include "Cube.h"
 
@@ -121,15 +120,6 @@ CUDA_GLOBAL void createPlaneKernel(Hitable** plane, int32_t index, Vector3Df pos
 
 void createPlane(Hitable** plane, int32_t index, const Vector3Df& position, const Vector3Df& normal, const Vector3Df& extend, Material* material, PlaneOrientation orientation, bool bTwoSide = true) {
     createPlaneKernel<<<1, 1>>>(plane, index, position, normal, extend, material, orientation, bTwoSide);
-    gpuErrorCheck(cudaDeviceSynchronize());
-}
-
-CUDA_GLOBAL void createTriangleKernel(Hitable** triangle, int32_t index, Vector3Df v0, Vector3Df v1, Vector3Df v2, Material* material) {
-    *(triangle + index) = new Triangle(v0, v1, v2, material);
-}
-
-void createTriangle(Hitable** triangle, int32_t index, const Vector3Df& v0, const Vector3Df& v1, const Vector3Df& v2, Material* material) {
-    createTriangleKernel<<<1, 1>>>(triangle, index, v0, v1, v2, material);
     gpuErrorCheck(cudaDeviceSynchronize());
 }
 

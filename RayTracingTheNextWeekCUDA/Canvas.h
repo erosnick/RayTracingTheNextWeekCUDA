@@ -159,6 +159,10 @@ public:
         (*accumulationBuffer)[index * 3+ 2] = 0.0f;
     }
 
+    inline void clearAccumulationBuffer() {
+        cudaMemset(accumulationBuffer->get(), 1, width * height * 3 * sizeof(Float));
+    }
+
     CUDA_HOST_DEVICE inline void incrementSampleCount() {
         sampleCount++;
         scale = 1.0f / sampleCount;

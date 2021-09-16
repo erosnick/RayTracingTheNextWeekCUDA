@@ -19,14 +19,14 @@ struct SimpleVertex {
     glm::vec2 texcoord;
 };
 
-struct Vertex {
+struct ComplexVertex {
     glm::vec3 position;
     glm::vec3 tangent;
     glm::vec3 binormal;
     glm::vec3 normal;
     glm::vec2 texCoord;
 
-    bool operator==(const Vertex& other) const {
+    bool operator==(const ComplexVertex& other) const {
         return (other.position == position) &&
             (other.normal == normal) &&
             (other.texCoord == texCoord);
@@ -52,7 +52,7 @@ public:
     ~Mesh() {
     }
 
-    void addVertex(const Vertex& vertex) {
+    void addVertex(const ComplexVertex& vertex) {
         vertices.push_back(vertex);
         vertexCount = vertices.size();
     }
@@ -62,7 +62,7 @@ public:
     }
 
     size_t getVertexBufferByteSize() const {
-        return sizeof(Vertex) * vertices.size();
+        return sizeof(ComplexVertex) * vertices.size();
     }
 
     size_t getIndexBufferByteSize() const {
@@ -85,11 +85,11 @@ public:
         return name;
     }
 
-    std::vector<Vertex> getVertices() const {
+    std::vector<ComplexVertex> getVertices() const {
         return vertices;
     }
 
-    const Vertex* getVerticesData() const {
+    const ComplexVertex* getVerticesData() const {
         return vertices.data();
     }
 
@@ -114,7 +114,7 @@ public:
 private:
     std::string name;
 
-    std::vector<Vertex> vertices;
+    std::vector<ComplexVertex> vertices;
     std::vector<uint32_t> indices;
     std::vector<SimpleVertex> normals;
 
@@ -263,8 +263,8 @@ void Mesh::computeTangentSpace() {
 }
 
 namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
+    template<> struct hash<ComplexVertex> {
+        size_t operator()(ComplexVertex const& vertex) const {
             return ((hash<glm::vec3>()(vertex.position)
                 ^ (hash<glm::vec3>()(vertex.normal) << 1)) >> 1)
                 ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
@@ -373,9 +373,9 @@ std::shared_ptr<Model> loadModel(const std::string& fileName, const std::string&
     uint32_t counter = 0;
     for (const auto& shape : shapes) {
         auto mesh = std::make_shared<Mesh>();
-        std::unordered_map<Vertex, uint32_t> uniqueVertices;
+        std::unordered_map<ComplexVertex, uint32_t> uniqueVertices;
         for (const auto& index : shape.mesh.indices) {
-            Vertex vertex = {};
+            ComplexVertex vertex = {};
 
             vertex.position = {
                 attrib.vertices[3 * index.vertex_index + 0],

@@ -21,24 +21,26 @@
   <ItemGroup>
     <CudaCompile Include="Buffer.cu" />
     <CudaCompile Include="Cube.cu" />
+    <CudaCompile Include="CUDAPathTracer.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="Material.cu" />
     <CudaCompile Include="TriangleMesh.cu" />
     <CudaCompile Include="Processor.cu" />
-    <CudaCompile Include="Triangle.cu" />
     <CudaCompile Include="Utils.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AABBox.h" />
     <ClInclude Include="Buffer.h" />
-    <ClInclude Include="BVHNode.h" />
+    <ClInclude Include="BVH.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Canvas.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Cube.h" />
+    <ClInclude Include="CUDAPathTracer.h" />
     <ClInclude Include="CUDATypes.h" />
     <ClInclude Include="cutil_math.h" />
     <ClInclude Include="Filesystem.h" />
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="GPUTimer.h" />
     <ClInclude Include="Hitable.h" />
     <ClInclude Include="imgui\imconfig.h" />
@@ -54,6 +56,7 @@
     <ClInclude Include="imgui\stb_image_write.h" />
     <ClInclude Include="kernels.h" />
     <ClInclude Include="LinearAlgebra.h" />
+    <ClInclude Include="Loader.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="HitResult.h" />
@@ -64,11 +67,12 @@
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Sphere.h" />
-    <ClInclude Include="Triangle.h" />
+    <ClInclude Include="Types.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="YAML.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BVH.cpp" />
     <ClCompile Include="Canvas.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="imgui\ImFileDialog.cpp" />
@@ -79,6 +83,7 @@
     <ClCompile Include="imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Loader.cpp" />
     <ClCompile Include="ModelLoader.cpp" />
     <ClCompile Include="OpenGLFrontend.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -165,7 +170,7 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr -Xcudafe="--diag_suppress=20012" %(AdditionalOptions)</AdditionalOptions>
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
@@ -222,7 +227,7 @@
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <FastMath>true</FastMath>
-      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr -Xcudafe="--diag_suppress=20012" %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
     <CudaLink />
     <CudaLink />
@@ -252,7 +257,8 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_61,sm_61</CodeGeneration>
-      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>--std=c++17 --expt-relaxed-constexpr -Xcudafe="--diag_suppress=20012"
+ %(AdditionalOptions)</AdditionalOptions>
       <MaxRegCount>64</MaxRegCount>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>

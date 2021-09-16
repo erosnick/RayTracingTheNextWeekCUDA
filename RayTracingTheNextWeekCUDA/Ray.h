@@ -19,8 +19,8 @@ public:
         return origin + t * direction;
     }
 
-    Vector3Df origin;
-    Vector3Df direction;
+    Vector3Df origin;           // ray origin
+    Vector3Df direction;        // ray direction
     Vector3Df inverseDirection;
     int32_t signs[3];
     Float time;

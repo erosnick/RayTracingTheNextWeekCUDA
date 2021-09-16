@@ -7,12 +7,14 @@
 #include "GPUTimer.h"
 #include "Sphere.h"
 #include "Plane.h"
-#include "Triangle.h"
 #include "TriangleMesh.h"
 #include "Cube.h"
 #include "YAML.h"
 #include "ModelLoader.h"
 #include "kernels.h"
+
+#include "CUDAPathTracer.h"
+#include "Loader.h"
 
 #include <yaml-cpp/yaml.h>
 #include <cstdio>
@@ -24,6 +26,19 @@ constexpr auto OBJECTS = 10;
 constexpr auto MATERIALS = 9;
 CUDA_CONSTANT Hitable* constantObjects[OBJECTS];
 CUDA_CONSTANT Material* constantMaterials[MATERIALS];
+
+// CUDA arrays
+struct Payload {
+    Vertex* cudaVertices2 = nullptr;
+    Triangle* cudaTriangles2 = nullptr;
+    float* cudaTriangleIntersectionData2 = nullptr;
+    int* cudaTriIdxList2 = nullptr;
+    float* cudaBVHlimits2 = nullptr;
+    int* cudaBVHindexesOrTrilists2 = nullptr;
+    TriangleDataTexture triangleDataTexture;
+};
+
+Payload payload;
 
 CUDA_DEVICE bool hit(const Ray& ray, Float tMin, Float tMax, HitResult& hitResult) {
     HitResult tempHitResult;
@@ -142,7 +157,7 @@ CUDA_GLOBAL void renderInit(int32_t width, int32_t height, curandState* randStat
 //    }
 //}
 
-CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randStates, int32_t* counter) {
+CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randStates, int32_t* counter, Payload payload) {
     auto x = threadIdx.x + blockDim.x * blockIdx.x;
     auto y = threadIdx.y + blockDim.y * blockIdx.y;
     auto width = canvas->getWidth();
@@ -168,7 +183,9 @@ CUDA_GLOBAL void renderKernel(Canvas* canvas, Camera* camera, curandState* randS
             auto dy = Float(y + ry) / (height - 1);
 
             auto ray = camera->getRay(dx, dy, &localRandState);
-            color += rayColor(ray, &localRandState);
+            //color += rayColor(ray, &localRandState);
+            color += pathTrace(&localRandState, ray.origin, ray.direction, -1, payload.cudaTriangles2, payload.cudaBVHindexesOrTrilists2, 
+                                payload.cudaBVHlimits2, payload.cudaTriangleIntersectionData2, payload.cudaTriIdxList2, payload.triangleDataTexture);
         }
         // Very important!!!
         randStates[index] = localRandState; 
@@ -291,8 +308,8 @@ std::vector<Vector3Df> computeTriangleAABBs(const std::vector<Vector3Df>& vertic
         auto min = min3(min3(v0, v1), v2);
         auto max = max3(max3(v0, v1), v2);
 
-        AABBs.push_back(Vector3Df(min.x, min.y, min.z));
-        AABBs.push_back(Vector3Df(max.x, max.y, max.z));
+        AABBs.emplace_back(Vector3Df(min.x, min.y, min.z));
+        AABBs.emplace_back(Vector3Df(max.x, max.y, max.z));
     }
 
     return AABBs;
@@ -332,14 +349,15 @@ void prepareTriangleData(const std::vector<Vector3Df>& vertices, Float4* triangl
     }
 }
 
-cudaTextureObject_t createTextureObject(Float4* data, int32_t size) {
+template<typename T1, typename T2 = T1>
+cudaTextureObject_t createTextureObject(T1* data, int32_t size) {
     cudaTextureObject_t texture;
     cudaResourceDesc textureResourceDesc;
 
     memset(&textureResourceDesc, 0, sizeof(cudaResourceDesc));
     
     // Helper function to create cudaChannelFormatDesc
-    auto desc = cudaCreateChannelDesc<Float4>();
+    auto desc = cudaCreateChannelDesc<T2>();
 
     // 1D texture array
     textureResourceDesc.resType = cudaResourceTypeLinear;
@@ -380,6 +398,150 @@ void createTriangleMeshData(const std::vector<Vector3Df>& vertices, TriangleMesh
     dataSize = sizeof(Float4) * vertices.size() * 2;
     alignedElementCount = (dataSize + 512 - 1) / 512;
     triangleMeshData.AABBData = createTextureObject(triangleMeshData.AABBs, alignedElementCount * 512);
+}
+
+// initialises scene data, builds BVH
+void prepareCUDAscene() {
+
+    // specify scene filename 
+    //const char* scenefile = "data/teapot.ply";  // teapot.ply, big_atc.ply
+    //const char* scenefile = "data/bunny.obj";
+    //const char* scenefile = "data/bun_zipper_res2.ply";  // teapot.ply, big_atc.ply
+    //const char* scenefile = "data/bun_zipper.ply";  // teapot.ply, big_atc.ply
+    //const char* sceneFile = "./resources/models/dragon/dragon_vrip_res4.ply";  // teapot.ply, big_atc.ply
+    //const char* scenefile = "data/dragon_vrip.ply";  // teapot.ply, big_atc.ply
+    //const char* scenefile = "data/happy_vrip.ply";  // teapot.ply, big_atc.ply
+    //auto sceneFile = "./resources/models/bunny/bunny.ply";
+    auto sceneFile = "./resources/models/suzanne/suzanne0.ply";
+
+    // load scene
+    loadObject(sceneFile, ReflectionType::COAT);
+
+    sceneFile = "./resources/models/suzanne/suzanne1.ply";
+
+    loadObject(sceneFile, ReflectionType::METAL);
+
+    float maxi = processTriangleData(Vector3Df(0.0f, 0.0f, 0.0f));
+
+    // build the BVH
+    UpdateBoundingVolumeHierarchy(sceneFile);
+
+    // now, allocate the CUDA side of the data (in CUDA global memory,
+    // in preparation for the textures that will store them...)
+
+    // store vertices in a GPU friendly format using float4
+    // copy vertex data to CUDA global memorya
+    cudaMallocManaged(&payload.cudaVertices2, (g_verticesNo * 8 * sizeof(float)));
+
+    for (unsigned f = 0; f < g_verticesNo; f++) {
+
+        // first float4 stores vertex xyz position and precomputed ambient occlusion
+        payload.cudaVertices2[f].x = g_vertices[f].x;
+        payload.cudaVertices2[f].y = g_vertices[f].y;
+        payload.cudaVertices2[f].z = g_vertices[f].z;
+        payload.cudaVertices2[f]._ambientOcclusionCoeff = g_vertices[f]._ambientOcclusionCoeff;
+        // second float4 stores vertex normal xyz
+        payload.cudaVertices2[f]._normal.x = g_vertices[f]._normal.x;
+        payload.cudaVertices2[f]._normal.y = g_vertices[f]._normal.y;
+        payload.cudaVertices2[f]._normal.z = g_vertices[f]._normal.z;
+    }
+
+    // store precomputed triangle intersection data in a GPU friendly format using float4
+    // copy precomputed triangle intersection data to CUDA global memory
+    auto dataElementCount = 24;
+    cudaMallocManaged(&payload.cudaTriangleIntersectionData2, g_trianglesNo * dataElementCount * sizeof(float));
+
+    for (unsigned e = 0; e < g_trianglesNo; e++) {
+        // Texture-wise:
+        //
+        // first float4, triangle center + two-sided bool
+        auto index = 0;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._center.x;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._center.y;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._center.z;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._twoSided ? 1.0f : 0.0f;
+        // second float4, normal
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._normal.x;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._normal.y;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._normal.z;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._d;
+        // third float4, precomputed plane normal of triangle edge 1
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e1.x;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e1.y;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e1.z;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._d1;
+        // fourth float4, precomputed plane normal of triangle edge 2
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e2.x;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e2.y;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e2.z;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._d2;
+        // fifth float4, precomputed plane normal of triangle edge 3
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e3.x;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e3.y;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._e3.z;
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e]._d3;
+
+        // extra info
+        payload.cudaTriangleIntersectionData2[dataElementCount * e + index++] = g_triangles[e].materialType;
+    }
+
+    // copy triangle data to CUDA global memory
+    cudaMalloc((void**)&payload.cudaTriangles2, g_trianglesNo * sizeof(Triangle));
+    cudaMemcpy(payload.cudaTriangles2, &g_triangles[0], g_trianglesNo * sizeof(Triangle), cudaMemcpyHostToDevice);
+
+    // Allocate CUDA-side data (global memory for corresponding textures) for Bounding Volume Hierarchy data
+    // See BVH.h for the data we are storing (from CacheFriendlyBVHNode)
+
+    // Leaf nodes triangle lists (indices to global triangle list)
+    // copy triangle indices to CUDA global memory
+    cudaMalloc((void**)&payload.cudaTriIdxList2, g_triIndexListNo * sizeof(int));
+    cudaMemcpy(payload.cudaTriIdxList2, g_triIndexList, g_triIndexListNo * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Bounding box limits need bottom._x, top._x, bottom._y, top._y, bottom._z, top._z...
+    // store BVH bounding box limits in a GPU friendly format using float2
+
+    // copy BVH limits to CUDA global memory
+    cudaMallocManaged(&payload.cudaBVHlimits2, g_pCFBVH_No * 6 * sizeof(float));
+
+    for (unsigned h = 0; h < g_pCFBVH_No; h++) {
+        // Texture-wise:
+        // First float2
+        payload.cudaBVHlimits2[6 * h + 0] = g_pCFBVH[h]._bottom.x;
+        payload.cudaBVHlimits2[6 * h + 1] = g_pCFBVH[h]._top.x;
+        // Second float2
+        payload.cudaBVHlimits2[6 * h + 2] = g_pCFBVH[h]._bottom.y;
+        payload.cudaBVHlimits2[6 * h + 3] = g_pCFBVH[h]._top.y;
+        // Third float2
+        payload.cudaBVHlimits2[6 * h + 4] = g_pCFBVH[h]._bottom.z;
+        payload.cudaBVHlimits2[6 * h + 5] = g_pCFBVH[h]._top.z;
+    }
+
+    // ..and finally, from CacheFriendlyBVHNode, the 4 integer values:
+    // store BVH node attributes (triangle count, startindex, left and right child indices) in a GPU friendly format using uint4
+
+    // copy BVH node attributes to CUDA global memory
+    cudaMallocManaged(&payload.cudaBVHindexesOrTrilists2, g_pCFBVH_No * 4 * sizeof(unsigned));
+
+    for (unsigned g = 0; g < g_pCFBVH_No; g++) {
+        // Texture-wise:
+        // A single uint4
+        payload.cudaBVHindexesOrTrilists2[4 * g + 0] = g_pCFBVH[g].u.leaf._count;  // number of triangles stored in this node if leaf node
+        payload.cudaBVHindexesOrTrilists2[4 * g + 1] = g_pCFBVH[g].u.inner._idxRight; // index to right child if inner node
+        payload.cudaBVHindexesOrTrilists2[4 * g + 2] = g_pCFBVH[g].u.inner._idxLeft;  // index to left node if inner node
+        payload.cudaBVHindexesOrTrilists2[4 * g + 3] = g_pCFBVH[g].u.leaf._startIndexInTriIndexList; // start index in list of triangle indices if leaf node
+        // union
+    }
+
+    payload.triangleDataTexture.triIdxListTexture = createTextureObject(payload.cudaTriIdxList2, g_triIndexListNo * sizeof(uint1));
+
+    payload.triangleDataTexture.CFBVHlimitsTexture = createTextureObject<float, Float2>(payload.cudaBVHlimits2, g_pCFBVH_No * 6 * sizeof(float));
+
+    payload.triangleDataTexture.CFBVHindexesOrTrilistsTexture = createTextureObject<int, uint4>(payload.cudaBVHindexesOrTrilists2, g_pCFBVH_No * sizeof(uint4));
+
+    payload.triangleDataTexture.trianglesTexture = createTextureObject<float, Float4>(payload.cudaTriangleIntersectionData2, g_trianglesNo * dataElementCount * sizeof(float));
+
+    // Initialisation Done!
+    std::cout << "Rendering data initialised and copied to CUDA global memory\n";
 }
 
 void initialize(int32_t width, int32_t height) {
@@ -456,8 +618,8 @@ void initialize(int32_t width, int32_t height) {
     //YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox_empty.yaml");
     //YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox0.yaml");
     //YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox1.yaml");
-    //YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox2.yaml");
-    YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox3.yaml");
+    YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox2.yaml");
+    //YAML::Node scene = YAML::LoadFile("./resources/scenes/cornellbox3.yaml");
 
     auto eye = scene["camera"]["eye"].as<Vector3Df>();
     auto center = scene["camera"]["center"].as<Vector3Df>();
@@ -502,6 +664,7 @@ void initialize(int32_t width, int32_t height) {
     //auto model = loadModel("./resources/models/plane/plane.obj");
     //auto model = loadModel("./resources/models/test/test.obj");
     //auto meshData = loadModel("./resources/models/suzanne/suzanne_small.obj");
+    prepareCUDAscene();
 
     auto objects = scene["objects"];
 
@@ -593,15 +756,6 @@ void initialize(int32_t width, int32_t height) {
                 auto twoSide = object["twoSide"].as<bool>();
                 auto orientation = static_cast<PlaneOrientation>(object["orientation"].as<uint8_t>());
                 createPlane(spheres, i, position, normal, extend, materials[materialId], orientation, twoSide);
-            }
-
-            break;
-            case PrimitiveType::Triangle: {
-                auto v0 = object["v0"].as<Vector3Df>();
-                auto v1 = object["v1"].as<Vector3Df>();
-                auto v2 = object["v2"].as<Vector3Df>();
-
-                createTriangle(spheres, i, v0, v1, v2, materials[materialId]);
             }
 
             break;
@@ -703,8 +857,9 @@ void initialize(int32_t width, int32_t height) {
 }   
 
 void clearBackBuffers() {
-    clearBackBuffers<<<gridSize, blockSize>>>(canvas);
-    gpuErrorCheck(cudaDeviceSynchronize());
+    //clearBackBuffers<<<gridSize, blockSize>>>(canvas);
+    //gpuErrorCheck(cudaDeviceSynchronize());
+    canvas->clearAccumulationBuffer();
     canvas->resetSampleCount();
     canvas->resetRenderingTime();
 }
@@ -719,7 +874,7 @@ void pathTracing() {
 
     canvas->incrementSampleCount();
     canvas->incrementRenderingTime(frameTime * 1000.0f);
-    renderKernel<<<gridSize, blockSize>>>(canvas, camera, randStates, nullptr);
+    renderKernel<<<gridSize, blockSize>>>(canvas, camera, randStates, nullptr, payload);
     gpuErrorCheck(cudaDeviceSynchronize());
 
     imageData->data = canvas->getPixelBuffer();
@@ -727,7 +882,7 @@ void pathTracing() {
     auto* counter = createObjectPtr<int32_t>();
     (*counter) = 0;
     canvas->incrementSampleCount();
-    renderKernel<<<gridSize, blockSize>>>(canvas, camera, randStates, counter);
+    renderKernel<<<gridSize, blockSize>>>(canvas, camera, randStates, counter, payload);
     gpuErrorCheck(cudaDeviceSynchronize());
 
     deleteObject(counter);
@@ -755,6 +910,17 @@ void cleanup() {
     deleteObject(camera);
     canvas->uninitialize();
     deleteObject(canvas);
+
+    deleteObject(payload.cudaBVHindexesOrTrilists2);
+    deleteObject(payload.cudaBVHlimits2);
+    deleteObject(payload.cudaTriIdxList2);
+    deleteObject(payload.cudaTriangles2);
+    deleteObject(payload.cudaTriangleIntersectionData2);
+    deleteObject(payload.cudaVertices2);
+    cudaDestroyTextureObject(triangleDataTexture.triIdxListTexture);
+    cudaDestroyTextureObject(triangleDataTexture.CFBVHlimitsTexture);
+    cudaDestroyTextureObject(triangleDataTexture.CFBVHindexesOrTrilistsTexture);
+    cudaDestroyTextureObject(triangleDataTexture.trianglesTexture);
 
     cudaDeviceReset();
 

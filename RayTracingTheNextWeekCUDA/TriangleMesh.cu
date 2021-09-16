@@ -1,5 +1,4 @@
 #include "TriangleMesh.h"
-#include "Triangle.h"
 #include "Material.h"
 
 CUDA_DEVICE TriangleMesh::~TriangleMesh() {

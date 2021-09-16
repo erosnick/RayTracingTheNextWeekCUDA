@@ -30,8 +30,9 @@ struct Vector3Df
 		float _v[3];
 	};
 
-	__host__ __device__ Vector3Df(float _x = 0, float _y = 0, float _z = 0) : x(_x), y(_y), z(_z) {}
+	__host__ __device__ Vector3Df(float _x = 0.0f, float _y = 0.0, float _z = 0.0f) : x(_x), y(_y), z(_z) {}
 	__host__ __device__ Vector3Df(const Vector3Df& v) : x(v.x), y(v.y), z(v.z) {}
+	__host__ __device__ Vector3Df(const float3& v) : x(v.x), y(v.y), z(v.z) {}
 	__host__ __device__ Vector3Df(const float4& v) : x(v.x), y(v.y), z(v.z) {}
 	inline __host__ __device__ float length(){ return sqrtf(x*x + y*y + z*z); }
 	// sometimes we dont need the sqrt, we are just comparing one length with another
@@ -50,6 +51,8 @@ struct Vector3Df
 	inline __host__ __device__ Vector3Df operator-() const { return Vector3Df(-x, -y, -z); }
 	inline __host__ __device__ Vector3Df& operator/=(const float& a){ x /= a; y /= a; z /= a; return *this; }
 	inline __host__ __device__ bool operator!=(const Vector3Df& v){ return x != v.x || y != v.y || z != v.z; }
+
+	inline __host__ __device__ operator float3() const { return make_float3(x, y, z); }
 };
 
 inline __host__ __device__ Vector3Df min3(const Vector3Df& v1, const Vector3Df& v2){ return Vector3Df(v1.x < v2.x ? v1.x : v2.x, v1.y < v2.y ? v1.y : v2.y, v1.z < v2.z ? v1.z : v2.z); }
@@ -61,11 +64,11 @@ inline __host__ __device__ float dot(const float4& v1, const Vector3Df& v2){ ret
 inline __host__ __device__ float distancesq(const Vector3Df& v1, const Vector3Df& v2){ return (v1.x - v2.x)*(v1.x - v2.x) + (v1.y - v2.y)*(v1.y - v2.y) + (v1.z - v2.z)*(v1.z - v2.z); }
 inline __host__ __device__ float distance(const Vector3Df& v1, const Vector3Df& v2){ return sqrtf((v1.x - v2.x)*(v1.x - v2.x) + (v1.y - v2.y)*(v1.y - v2.y) + (v1.z - v2.z)*(v1.z - v2.z)); }
 
-inline __host__ __device__ Vector3Df operator/(Float a, const Vector3Df& b) {
+inline __host__ __device__ Vector3Df operator/(float a, const Vector3Df& b) {
 	return Vector3Df(a / b.x, a / b.y, a / b.z);
 }
 
-inline __host__ __device__ Vector3Df operator*(Float a, const Vector3Df& b) {
+inline __host__ __device__ Vector3Df operator*(float a, const Vector3Df& b) {
 	return b * a;
 }
 
@@ -85,7 +88,7 @@ inline __device__ __host__ Vector3Df rotateY(Vector3Df v, float radian) {
 
 inline __device__ __host__ Vector3Df rotateX(Vector3Df v, float radian) {
     return Vector3Df(v.x, v.y * cos(radian) - v.z * sin(radian),
-        v.y * sin(radian) + v.z * cos(radian));
+					 v.y * sin(radian) + v.z * cos(radian));
 }
 
 inline __device__ __host__ Vector3Df lerp(const Vector3Df& v0, const Vector3Df& v1, float t) {

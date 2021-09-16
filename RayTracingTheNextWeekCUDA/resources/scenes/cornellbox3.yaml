@@ -160,7 +160,7 @@ objects:
           - 1.0
         intensity: 1.0
   - mesh:
-      type: 3
+      type: 2
       model: suzanne/suzanne_small.obj
       scale:
         - 1.0

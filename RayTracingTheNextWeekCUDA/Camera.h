@@ -6,6 +6,9 @@
 #include "Constants.h"
 #include "Utils.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 class Camera {
 public:
     CUDA_HOST_DEVICE Camera(const Vector3Df& inEye, const Vector3Df& inCenter, const Vector3Df& inUp, Float inAspectRatio, Float inFOV = 90.0f, 
