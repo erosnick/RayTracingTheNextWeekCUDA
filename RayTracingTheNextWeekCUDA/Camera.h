@@ -68,7 +68,7 @@ public:
 
     void pitch(Float delta) {
         // Should rotate around right vector
-        forward = normalize(rotateX(forward, delta));
+        forward = normalize(rotate(forward, right, delta));
         //up = glm::normalize(rotation * up);
         center = eye + forward;
 

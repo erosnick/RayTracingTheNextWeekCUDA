@@ -12,6 +12,7 @@
 
 #include <Shader.h>
 #include <filesystem.h>
+#include <filesystem>
 
 #include <iostream>
 
@@ -29,6 +30,7 @@ void processInput(GLFWwindow* window);
 bool bShowDemoWindow = false;
 bool bShowAnotherWindow = false;
 bool bShowOpenMenuItem = true;
+bool bShowImGUI = true;
 
 GLFWwindow* window = nullptr;
 
@@ -242,7 +244,7 @@ void buildImGuiWidgets() {
     }
 }
 
-static void pxl_glfw_fps(GLFWwindow* window)
+static void updateFPS(GLFWwindow* window)
 {
     // static fps counters
     static double stamp_prev = 0.0;
@@ -279,9 +281,11 @@ void update() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    buildImGuiWidgets();
+    if (bShowImGUI) {
+        buildImGuiWidgets();
+    }
 
-    pxl_glfw_fps(window);
+    updateFPS(window);
 }
 
 void renderImGui() {
@@ -308,8 +312,50 @@ void render(unsigned int textureId, Shader& ourShader, unsigned int VAO) {
 
 }
 
+void screenShot(const std::string& outputPath = "") {
+    std::vector<uint8_t> pixels;
+    pixels.resize(width * height * 3);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, &pixels[0]);
+
+    auto intermediate = pixels;
+
+    for (auto y = height - 1; y >= 0; y--) {
+        for (auto x = 0; x < width; x++) {
+            auto sourceIndex = y * width + x;
+            auto targetIndex = (height - (y + 1)) * width + x;
+            pixels[targetIndex * 3] = intermediate[sourceIndex * 3];
+            pixels[targetIndex * 3 + 1] = intermediate[sourceIndex * 3 + 1];
+            pixels[targetIndex * 3 + 2] = intermediate[sourceIndex * 3 + 2];
+        }
+    }
+
+    std::string fileName = outputPath;
+
+    if (outputPath.empty()) {
+        fileName = std::filesystem::current_path().string();
+        fileName.append("\\render_").append(std::to_string(width))
+                .append("x")
+                .append(std::to_string(height))
+                .append("_spp")
+                .append(std::to_string(canvas->getSampleCount()))
+                .append(".png");
+    }
+
+    stbi_write_png(fileName.c_str(), width, height, 3, pixels.data(), width * 3);
+
+    std::cout << "Screen shot save to" << fileName;
+}
+
 void onKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+
+    if (glfwGetKey(window, GLFW_KEY_ENTER)) {
+        screenShot();
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_H)) {
+        bShowImGUI = !bShowImGUI;
+    }
 }
 
 void onMouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {

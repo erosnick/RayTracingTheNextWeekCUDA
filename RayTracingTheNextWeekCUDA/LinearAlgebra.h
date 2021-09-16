@@ -86,9 +86,26 @@ inline __device__ __host__ Vector3Df rotateY(Vector3Df v, float radian) {
         -v.x * sin(radian) + v.z * cos(radian));
 }
 
-inline __device__ __host__ Vector3Df rotateX(Vector3Df v, float radian) {
+inline __device__ __host__ Vector3Df rotateX(const Vector3Df& v, float radian) {
     return Vector3Df(v.x, v.y * cos(radian) - v.z * sin(radian),
 					 v.y * sin(radian) + v.z * cos(radian));
+}
+
+inline __device__ __host__ Vector3Df rotate(const Vector3Df& v, const Vector3Df& axis, float radian) {
+	auto cosAngle = cos(radian);
+	auto sinAngle = sin(radian);
+	float n1 = axis.x;
+	float n2 = axis.y;
+	float n3 = axis.z;
+	float4 row0 = { n1 * n1 * (1.0f - cosAngle) + cosAngle, n1 * n2 * (1.0f - cosAngle) - n3 * sinAngle, n1 * n3 * (1.0f - cosAngle) + n2 * sinAngle, 0.0f };
+	float4 row1 = { n1 * n2 * (1.0f - cosAngle) + n3 * sinAngle, n2 * n2 * (1.0f - cosAngle) + cosAngle, n2 * n3 * (1.0f - cosAngle) - n1 * sinAngle, 0.0f };
+	float4 row2 = { n1 * n3 * (1.0f - cosAngle) - n2 * sinAngle, n2 * n3 * (1.0f - cosAngle) + n1 * sinAngle, n3 * n3 * (1.0f - cosAngle) + cosAngle, 0.0f };
+	
+	auto x = row0.x * v.x + row0.y * v.y + row0.z * v.z;
+	auto y = row1.x * v.x + row1.y * v.y + row1.z * v.z;
+	auto z = row2.x * v.x + row2.y * v.y + row2.z * v.z;
+
+	return Vector3Df(x, y, z);
 }
 
 inline __device__ __host__ Vector3Df lerp(const Vector3Df& v0, const Vector3Df& v1, float t) {

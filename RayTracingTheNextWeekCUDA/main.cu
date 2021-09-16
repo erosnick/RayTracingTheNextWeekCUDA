@@ -412,16 +412,24 @@ void prepareCUDAscene() {
     //const char* scenefile = "data/dragon_vrip.ply";  // teapot.ply, big_atc.ply
     //const char* scenefile = "data/happy_vrip.ply";  // teapot.ply, big_atc.ply
     //auto sceneFile = "./resources/models/bunny/bunny.ply";
-    auto sceneFile = "./resources/models/suzanne/suzanne0.ply";
+    //auto sceneFile = "./resources/models/suzanne/suzanne0.ply";
 
-    // load scene
-    loadObject(sceneFile, ReflectionType::COAT);
+    //// load scene
+    //loadObject(sceneFile, ReflectionType::COAT);
 
-    sceneFile = "./resources/models/suzanne/suzanne1.ply";
+    //sceneFile = "./resources/models/suzanne/suzanne1.ply";
+
+    //loadObject(sceneFile, ReflectionType::REFRACTION);
+
+    //sceneFile = "./resources/models/suzanne/suzanne2.ply";
+
+    //loadObject(sceneFile, ReflectionType::METAL);
+
+    auto sceneFile = "./resources/models/materialball/materialball.ply";
 
     loadObject(sceneFile, ReflectionType::METAL);
 
-    float maxi = processTriangleData(Vector3Df(0.0f, 0.0f, 0.0f));
+    float maxi = processTriangleData(Vector3Df(0.1f, 0.0f, -1.0f));
 
     // build the BVH
     UpdateBoundingVolumeHierarchy(sceneFile);
