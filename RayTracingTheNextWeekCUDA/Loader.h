@@ -4,6 +4,6 @@
 #include "Types.h"
 
 void panic(const char* fmt, ...);
-void loadObject(const std::string& filename, ReflectionType reflectionType);
+void loadObject(const std::string& filename, ReflectionType reflectionType, int32_t meshIndex);
 float processTriangleData(const Vector3Df& offset);
 #endif

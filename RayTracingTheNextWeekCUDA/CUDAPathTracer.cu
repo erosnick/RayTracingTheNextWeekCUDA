@@ -365,7 +365,7 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 		float d = 1e20f;
 		float scene_t = 1e20f;
 		float inf = 1e20f;
-		float hitdistance = 1e20;
+		float hitdistance = 1e20f;
 		Vector3Df f = Vector3Df(0.0f, 0.0f, 0.0f);
 		Vector3Df emit = Vector3Df(0.0f, 0.0f, 0.0f);
 		Vector3Df x; // intersection point

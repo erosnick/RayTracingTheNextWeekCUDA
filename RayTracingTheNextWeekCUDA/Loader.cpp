@@ -204,7 +204,7 @@ float processTriangleData(const Vector3Df& offset) {
     return MaxCoordAfterRescale;
 }
 
-void loadObject(const std::string& filename, ReflectionType reflectionType)
+void loadObject(const std::string& filename, ReflectionType reflectionType, int32_t meshIndex)
 {
 	std::cout << "Loading object..." << std::endl;
 	const char *edot = strrchr(filename.c_str(), '.');
@@ -289,6 +289,7 @@ void loadObject(const std::string& filename, ReflectionType reflectionType)
 							currentTriangle._colorf.y = g;
 							currentTriangle._colorf.z = b;
 							currentTriangle.materialType = static_cast<uint32_t>(reflectionType);
+							currentTriangle.meshIndex = meshIndex;
 							currentTriangle._twoSided = false;
 							currentTriangle._normal = Vector3Df(0, 0, 0);
 							currentTriangle._bottom = Vector3Df(FLT_MAX, FLT_MAX, FLT_MAX);

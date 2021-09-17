@@ -56,8 +56,9 @@ struct Triangle {
 	// bounding box
 	Vector3Df _bottom;
 	Vector3Df _top;
-	// 在三角形中添加字段
+	// 在三角形中添加额外字段
 	uint32_t materialType;
+	uint32_t meshIndex;
 };
 
 #endif 
