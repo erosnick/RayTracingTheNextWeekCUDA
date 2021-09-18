@@ -368,11 +368,11 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 		float hitdistance = 1e20f;
 		Vector3Df f = Vector3Df(0.0f, 0.0f, 0.0f);
 		Vector3Df emit = Vector3Df(0.0f, 0.0f, 0.0f);
-		Vector3Df x; // intersection point
+		Vector3Df hitPoint; // intersection point
 		Vector3Df n; // normal
 		Vector3Df nl; // oriented normal
 		Vector3Df boxnormal = Vector3Df(0.0f, 0.0f, 0.0f);
-		Vector3Df dw; // ray direction of next path segment
+		Vector3Df nextRayDirection; // ray direction of next path segment
 		ReflectionType reflectionType;
 
 		float3 rayOrigin = make_float3(originInWorldSpace.x, originInWorldSpace.y, originInWorldSpace.z);
@@ -408,8 +408,8 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 		if (geomtype == 1) {
 
 			Sphere& sphere = spheres[sphere_id]; // hit object with closest intersection
-			x = originInWorldSpace + rayInWorldSpace * scene_t;  // intersection point on object
-			n = Vector3Df(x.x - sphere.pos.x, x.y - sphere.pos.y, x.z - sphere.pos.z);		// normal
+			hitPoint = originInWorldSpace + rayInWorldSpace * scene_t;  // intersection point on object
+			n = Vector3Df(hitPoint.x - sphere.pos.x, hitPoint.y - sphere.pos.y, hitPoint.z - sphere.pos.z);		// normal
 			n.normalize();
 			nl = dot(n, rayInWorldSpace) < 0 ? n : n * -1; // correctly oriented normal
 			f = Vector3Df(sphere.col.x, sphere.col.y, sphere.col.z);   // object colour
@@ -423,7 +423,7 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 
 			pBestTri = &pTriangles[triangle_id];
 
-			x = pointHitInWorldSpace;  // intersection point
+			hitPoint = pointHitInWorldSpace;  // intersection point
 			n = pBestTri->_normal;  // normal
 
 			n.normalize();
@@ -453,11 +453,11 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 			Vector3Df v = cross(w, u);
 
 			// compute cosine weighted random ray direction on hemisphere 
-			dw = u * cosf(phi) * r2s + v * sinf(phi) * r2s + w * sqrtf(1 - r2);
-			dw.normalize();
+			nextRayDirection = u * cosf(phi) * r2s + v * sinf(phi) * r2s + w * sqrtf(1 - r2);
+			nextRayDirection.normalize();
 
 			// offset origin next path segment to prevent self intersection
-			pointHitInWorldSpace = x + w * 0.01;  // scene size dependent
+			pointHitInWorldSpace = hitPoint + w * 0.01;  // scene size dependent
 
 			// multiply mask with colour of object
 			mask *= f;
@@ -481,11 +481,11 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 			Vector3Df v = cross(w, u); // v is normalised by default
 
 			// compute cosine weighted random ray direction on hemisphere 
-			dw = u * cosf(phi) * sinTheta + v * sinf(phi) * sinTheta + w * cosTheta;
-			dw.normalize();
+			nextRayDirection = u * cosf(phi) * sinTheta + v * sinf(phi) * sinTheta + w * cosTheta;
+			nextRayDirection.normalize();
 
 			// offset origin next path segment to prevent self intersection
-			pointHitInWorldSpace = x + w * 0.01;  // scene size dependent
+			pointHitInWorldSpace = hitPoint + w * 0.01;  // scene size dependent
 
 			// multiply mask with colour of object
 			mask *= f;
@@ -495,10 +495,10 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 		if (reflectionType == ReflectionType::SPECULAR) {
 
 			// compute reflected ray direction according to Snell's law
-			dw = rayInWorldSpace - n * 2.0f * dot(n, rayInWorldSpace);
+			nextRayDirection = rayInWorldSpace - n * 2.0f * dot(n, rayInWorldSpace);
 
 			// offset origin next path segment to prevent self intersection
-			pointHitInWorldSpace = x + nl * 0.01;   // scene size dependent
+			pointHitInWorldSpace = hitPoint + nl * 0.01;   // scene size dependent
 
 			// multiply mask with colour of object
 			mask *= f;
@@ -520,10 +520,10 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 				// TODO: Use Russian roulette instead of simple multipliers! (Selecting between diffuse sample and no sample (absorption) in this case.)
 
 				mask *= specularColor;
-				dw = rayInWorldSpace - n * 2.0f * dot(n, rayInWorldSpace);
+				nextRayDirection = rayInWorldSpace - n * 2.0f * dot(n, rayInWorldSpace);
 
 				// offset origin next path segment to prevent self intersection
-				pointHitInWorldSpace = x + nl * 0.01; // scene size dependent
+				pointHitInWorldSpace = hitPoint + nl * 0.01; // scene size dependent
 			}
 
 			else {  // calculate perfectly diffuse reflection
@@ -538,11 +538,11 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 				Vector3Df v = cross(w, u);
 
 				// compute cosine weighted random ray direction on hemisphere 
-				dw = u * cosf(r1) * r2s + v * sinf(r1) * r2s + w * sqrtf(1 - r2);
-				dw.normalize();
+				nextRayDirection = u * cosf(r1) * r2s + v * sinf(r1) * r2s + w * sqrtf(1 - r2);
+				nextRayDirection.normalize();
 
 				// offset origin next path segment to prevent self intersection
-				pointHitInWorldSpace = x + nl * 0.01;  // // scene size dependent
+				pointHitInWorldSpace = hitPoint + nl * 0.01;  // // scene size dependent
 
 				// multiply mask with colour of object
 				mask *= f;
@@ -562,11 +562,11 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 
 			if (cos2t < 0.0f) // total internal reflection 
 			{
-				dw = rayInWorldSpace;
-				dw -= n * 2.0f * dot(n, rayInWorldSpace);
+				nextRayDirection = rayInWorldSpace;
+				nextRayDirection -= n * 2.0f * dot(n, rayInWorldSpace);
 
 				// offset origin next path segment to prevent self intersection
-				pointHitInWorldSpace = x + nl * 0.01; // scene size dependent
+				pointHitInWorldSpace = hitPoint + nl * 0.01; // scene size dependent
 			}
 			else // cos2t > 0
 			{
@@ -587,23 +587,23 @@ __device__ Vector3Df pathTrace(curandState* randstate, Vector3Df originInWorldSp
 				if (curand_uniform(randstate) < 0.25) // reflection ray
 				{
 					mask *= RP;
-					dw = rayInWorldSpace;
-					dw -= n * 2.0f * dot(n, rayInWorldSpace);
+					nextRayDirection = rayInWorldSpace;
+					nextRayDirection -= n * 2.0f * dot(n, rayInWorldSpace);
 
-					pointHitInWorldSpace = x + nl * 0.01; // scene size dependent
+					pointHitInWorldSpace = hitPoint + nl * 0.01; // scene size dependent
 				}
 				else // transmission ray
 				{
 					mask *= TP;
-					dw = tdir; //r = Ray(x, tdir); 
-					pointHitInWorldSpace = x + nl * 0.001f; // epsilon must be small to avoid artefacts
+					nextRayDirection = tdir; //r = Ray(x, tdir); 
+					pointHitInWorldSpace = hitPoint + nl * 0.001f; // epsilon must be small to avoid artefacts
 				}
 			}
 		}
 
 		// set up origin and direction of next path segment
 		originInWorldSpace = pointHitInWorldSpace;
-		rayInWorldSpace = dw;
+		rayInWorldSpace = nextRayDirection;
 	}
 
 	return Vector3Df(accucolor.x, accucolor.y, accucolor.z);
