@@ -427,7 +427,7 @@ void prepareCUDAscene() {
 
     auto sceneFile = "./resources/models/materialball/materialball.ply";
 
-    loadObject(sceneFile, ReflectionType::METAL, 0);
+    loadObject(sceneFile, ReflectionType::COAT, 0);
 
     float maxi = processTriangleData(Vector3Df(0.1f, 0.0f, -1.0f));
 
